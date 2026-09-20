@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { analyze } from "../src/analyze.ts";
 import { DEFAULT_SETTINGS } from "../src/settings.ts";
-import { highlighted, words } from "./helpers.ts";
+import { families, highlighted, words } from "./helpers.ts";
 
 /** N mots de remplissage sans aucune répétition (vocabulaire de 400 mots distincts). */
 function filler(count: number): string {
@@ -118,6 +118,30 @@ test("les plages rendues sont triées et ne se chevauchent pas", () => {
 	for (let i = 1; i < ranges.length; i++) {
 		assert.ok(ranges[i].from >= ranges[i - 1].to, `chevauchement entre ${i - 1} et ${i}`);
 	}
+});
+
+test("chaque mot répété forme sa propre famille", () => {
+	const text = "La porte grinça ; la fenêtre claqua ; la porte céda ; la fenêtre vola.";
+	const byFamily = new Map<string, string[]>();
+	for (const [passage, family] of families(text)) byFamily.set(family, [...(byFamily.get(family) ?? []), passage]);
+	assert.equal(byFamily.size, 2);
+	assert.deepEqual([...byFamily.values()].map((passages) => passages.length), [2, 2]);
+});
+
+test("les formes d'un même mot appartiennent à la même famille, sauf sans stemming", () => {
+	const text = "Il regardait la mer. Elle regarda le ciel. Il regardait encore.";
+	assert.equal(new Set(families(text).map(([, family]) => family)).size, 1);
+	// Sans stemming, « regarda » n'est plus rapproché : « regardait » reste seul dans sa famille.
+	assert.deepEqual(families(text, { useStemming: false }).map(([passage]) => passage), ["regardait", "regardait"]);
+});
+
+test("une expression répétée a sa famille, distincte de celle des mots qu'elle contient", () => {
+	const text = "Tout de même, le vin. Le vin est bon. Tout de même, la soupe.";
+	const found = families(text);
+	const phrase = found.filter(([passage]) => passage === "Tout de même");
+	assert.equal(phrase.length, 2);
+	assert.equal(phrase[0][1], phrase[1][1]);
+	assert.notEqual(phrase[0][1], found.find(([passage]) => passage === "vin")?.[1]);
 });
 
 test("un texte vide ou sans mots ne plante pas", () => {

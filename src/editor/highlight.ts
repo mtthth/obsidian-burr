@@ -3,6 +3,8 @@ import type { Extension } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin } from "@codemirror/view";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
 import { analyze } from "../analyze.ts";
+import { PALETTE_SIZE, assignColors } from "../colors.ts";
+import type { ColorMemory } from "../colors.ts";
 import type { BurrSettings } from "../settings.ts";
 
 /** Attente après la dernière frappe avant de relancer l'analyse. */
@@ -14,8 +16,10 @@ const setHighlights = StateEffect.define<DecorationSet>();
 /** Demande une nouvelle analyse tout de suite (réglages modifiés). */
 export const refreshHighlights = StateEffect.define<null>();
 
-/** Une décoration par intensité (indice 1 à 3), partagées entre toutes les plages. */
-const marks = [1, 2, 3].map((level) => Decoration.mark({ class: `burr-repetition burr-repetition-${level}` }));
+/** Une décoration par couleur puis par intensité (1 à 3), partagées entre toutes les plages. */
+const marks = Array.from({ length: PALETTE_SIZE }, (_, color) =>
+	[1, 2, 3].map((level) => Decoration.mark({ class: `burr-repetition burr-repetition-${level} burr-color-${color}` })),
+);
 
 // Entre deux analyses, les surlignages suivent le texte que l'on tape : sans cela
 // ils glisseraient sous le curseur pendant les 250 ms d'attente.
@@ -31,8 +35,10 @@ const highlightField = StateField.define<DecorationSet>({
 	provide: (field) => EditorView.decorations.from(field),
 });
 
-function buildDecorations(text: string, settings: BurrSettings): DecorationSet {
-	const ranges = analyze(text, settings).map((h) => marks[h.intensity - 1].range(h.from, h.to));
+function buildDecorations(text: string, settings: BurrSettings, memory: ColorMemory): DecorationSet {
+	const highlights = analyze(text, settings);
+	const colors = assignColors(highlights, memory);
+	const ranges = highlights.map((h, i) => marks[colors[i]][h.intensity - 1].range(h.from, h.to));
 	return Decoration.set(ranges, true);
 }
 
@@ -42,6 +48,8 @@ export function burrHighlighter(getSettings: () => BurrSettings): Extension {
 		class {
 			private view: EditorView;
 			private timer: number | null = null;
+			// Une famille garde sa couleur d'une analyse à l'autre, dans cet éditeur.
+			private colors: ColorMemory = new Map();
 
 			constructor(view: EditorView) {
 				this.view = view;
@@ -72,7 +80,9 @@ export function burrHighlighter(getSettings: () => BurrSettings): Extension {
 			private run() {
 				this.timer = null;
 				const settings = getSettings();
-				const decorations = settings.enabled ? buildDecorations(this.view.state.doc.toString(), settings) : Decoration.none;
+				const decorations = settings.enabled
+					? buildDecorations(this.view.state.doc.toString(), settings, this.colors)
+					: Decoration.none;
 				this.view.dispatch({ effects: setHighlights.of(decorations) });
 			}
 		},

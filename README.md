@@ -9,7 +9,8 @@ Pour l'instant, Burr ne fait qu'une chose : la détection automatique des répé
 ### Répétitions
 
 - **Par proximité, pas par fréquence.** Deux occurrences sont signalées si elles sont séparées par au plus *N* mots (80 par défaut, réglable de 20 à 200). Un mot qui revient à cent pages d'écart ne gêne personne.
-- **Une intensité selon la distance.** Trois teintes : plus les deux occurrences sont proches, plus le surlignage est marqué.
+- **Une couleur par famille.** Toutes les occurrences d'un même mot (formes voisines comprises) ou d'une même expression partagent une couleur, et chaque famille a la sienne : on voit d'un coup d'œil quelles plages se répondent. Douze couleurs ; à l'intérieur d'un écran, deux familles voisines n'en partagent une que si plus de douze familles s'y croisent, et la couleur choisie est alors celle dont l'autre occurrence est la plus éloignée. Une famille garde sa couleur pendant que vous tapez.
+- **Une intensité selon la distance.** Trois nuances de fond : plus les deux occurrences sont proches, plus le surlignage est marqué.
 - **Mots isolés et expressions.** Burr repère aussi les suites de 2 à 4 mots (« tout de même », « il n'y avait pas »). Quand une expression revient, elle est surlignée d'un bloc plutôt que mot par mot.
 - **Formes d'un même mot.** Grâce à un stemmer [Snowball](https://snowballstem.org/) français, *regardait*, *regarda* et *regardant* se rapprochent. Ces rapprochements sont surlignés plus discrètement et sur une distance plus courte, car un stemmer se trompe parfois.
 - **Le bruit est écarté.**
@@ -77,6 +78,7 @@ src/
   main.ts               le plugin : réglages, commande, extension d'éditeur
   settingsTab.ts        l'onglet de réglages
   analyze.ts            texte -> mots -> détecteurs -> plages à surligner
+  colors.ts             une couleur par famille de plages, stable pendant la frappe
   text/                 normalisation, zones ignorées, découpage en mots
   detectors/            un module par détecteur, même interface (types.ts)
   editor/highlight.ts   extension CodeMirror 6 (ViewPlugin + Decoration.mark)

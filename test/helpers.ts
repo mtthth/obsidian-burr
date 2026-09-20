@@ -8,6 +8,12 @@ export function highlighted(text: string, overrides: Partial<BurrSettings> = {})
 	return analyze(text, settings).map((h) => [text.slice(h.from, h.to), h.intensity]);
 }
 
+/** Les passages surlignés avec leur famille (mot ou expression dont ils sont une occurrence). */
+export function families(text: string, overrides: Partial<BurrSettings> = {}): Array<[string, string]> {
+	const settings: BurrSettings = { ...DEFAULT_SETTINGS, ...overrides };
+	return analyze(text, settings).map((h) => [text.slice(h.from, h.to), h.family]);
+}
+
 /** Comme `highlighted`, sans les intensités. */
 export function words(text: string, overrides: Partial<BurrSettings> = {}): string[] {
 	return highlighted(text, overrides).map(([passage]) => passage);

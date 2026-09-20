@@ -1,21 +1,42 @@
 /*
- * Répétitions : trois intensités, de la plus discrète (occurrences éloignées) à la plus marquée.
- * Le repli après la première virgule sert si un thème ne définit pas --color-orange-rgb.
+ * Répétitions. Chaque famille (un même mot répété, une même expression) a sa couleur ;
+ * l'intensité du fond (1 à 3) dit la proximité des occurrences, le filet dessous
+ * garde la teinte lisible même quand le fond est pâle.
+ *
+ * Les couleurs viennent du thème d'Obsidian ; le repli après la première virgule
+ * sert si un thème ne définit pas la variable. L'ordre place côte à côte des teintes
+ * très différentes : les premières familles d'un écran se distinguent au mieux.
  */
 .burr-repetition {
-	border-radius: 3px;
+	--burr-rgb: 236, 117, 0;
+	border-bottom: 2px solid rgba(var(--burr-rgb), 0.85);
+	border-radius: 3px 3px 0 0;
 	-webkit-box-decoration-break: clone;
 	box-decoration-break: clone;
 }
 
 .burr-repetition-1 {
-	background-color: rgba(var(--color-orange-rgb, 236, 117, 0), 0.16);
+	background-color: rgba(var(--burr-rgb), 0.14);
 }
 
 .burr-repetition-2 {
-	background-color: rgba(var(--color-orange-rgb, 236, 117, 0), 0.3);
+	background-color: rgba(var(--burr-rgb), 0.28);
 }
 
 .burr-repetition-3 {
-	background-color: rgba(var(--color-orange-rgb, 236, 117, 0), 0.5);
+	background-color: rgba(var(--burr-rgb), 0.46);
 }
+
+.burr-color-0 { --burr-rgb: var(--color-orange-rgb, 236, 117, 0); }
+.burr-color-1 { --burr-rgb: var(--color-blue-rgb, 8, 109, 221); }
+.burr-color-2 { --burr-rgb: var(--color-green-rgb, 8, 185, 78); }
+.burr-color-3 { --burr-rgb: var(--color-purple-rgb, 135, 80, 249); }
+.burr-color-4 { --burr-rgb: var(--color-red-rgb, 233, 49, 71); }
+.burr-color-5 { --burr-rgb: var(--color-cyan-rgb, 0, 191, 188); }
+.burr-color-6 { --burr-rgb: var(--color-yellow-rgb, 224, 172, 0); }
+.burr-color-7 { --burr-rgb: var(--color-pink-rgb, 213, 47, 158); }
+/* Teintes propres à Burr, pour que douze familles se distinguent dans le même écran. */
+.burr-color-8 { --burr-rgb: 150, 200, 0; }
+.burr-color-9 { --burr-rgb: 72, 84, 200; }
+.burr-color-10 { --burr-rgb: 160, 100, 60; }
+.burr-color-11 { --burr-rgb: 0, 150, 136; }

@@ -68,8 +68,20 @@ function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
 
 	const wordLevel = new Uint8Array(count); // mots isolés
 	const phraseLevel = new Uint8Array(count); // mots couverts par une expression répétée
+	const phraseKey = new Array<string>(count); // l'expression qui couvre chaque mot
 	const raise = (levels: Uint8Array, index: number, level: number) => {
 		if (level > levels[index]) levels[index] = level;
+	};
+
+	// Famille d'un mot isolé : sa racine quand le stemming est actif (regardait,
+	// regarda et regardant se répondent), sinon sa forme.
+	const wordFamily = (index: number): string => {
+		const word = tokens[index].norm;
+		if (settings.useStemming) {
+			const stem = language.stem(word);
+			if (stem.length >= MIN_STEM_LENGTH) return stem;
+		}
+		return word;
 	};
 
 	// 1. Même forme.
@@ -139,8 +151,12 @@ function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
 					const boost = size >= 3 ? 1 : 0;
 					const level = Math.min(3, intensityFor(distance, reach) + boost);
 					for (let k = 0; k < size; k++) {
-						raise(phraseLevel, i + k, level);
-						raise(phraseLevel, previous + k, level);
+						for (const index of [i + k, previous + k]) {
+							if (level > phraseLevel[index]) {
+								phraseLevel[index] = level;
+								phraseKey[index] = key;
+							}
+						}
 					}
 				}
 			}
@@ -155,15 +171,29 @@ function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
 			const segment = tokens[i].segment;
 			let end = i;
 			let level = 0;
+			let strongest = i; // le mot couvert par l'expression la plus marquée donne sa famille à la plage
 			while (end < count && phraseLevel[end] && tokens[end].segment === segment) {
+				if (phraseLevel[end] > phraseLevel[strongest]) strongest = end;
 				level = Math.max(level, phraseLevel[end], wordLevel[end]);
 				end++;
 			}
-			highlights.push({ from: tokens[i].from, to: tokens[end - 1].to, category: REPETITION, intensity: level as Intensity });
+			highlights.push({
+				from: tokens[i].from,
+				to: tokens[end - 1].to,
+				category: REPETITION,
+				family: phraseKey[strongest],
+				intensity: level as Intensity,
+			});
 			i = end;
 		} else {
 			if (wordLevel[i]) {
-				highlights.push({ from: tokens[i].from, to: tokens[i].to, category: REPETITION, intensity: wordLevel[i] as Intensity });
+				highlights.push({
+					from: tokens[i].from,
+					to: tokens[i].to,
+					category: REPETITION,
+					family: wordFamily(i),
+					intensity: wordLevel[i] as Intensity,
+				});
 			}
 			i++;
 		}

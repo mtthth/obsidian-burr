@@ -7,8 +7,14 @@ export interface Highlight {
 	/** Positions dans le document. */
 	from: number;
 	to: number;
-	/** Famille du signal (« repetition »…) : détermine la couleur. */
+	/** Catégorie du signal (« repetition »…). */
 	category: string;
+	/**
+	 * Famille : les occurrences liées entre elles (un même mot répété, une même
+	 * expression). Chaque famille reçoit sa couleur, pour que l'on voie d'un coup
+	 * d'œil quelles plages se répondent.
+	 */
+	family: string;
 	/** 1 (discret) à 3 (marqué). */
 	intensity: 1 | 2 | 3;
 }
