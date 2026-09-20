@@ -1,0 +1,10 @@
+{
+	"id": "burr",
+	"name": "Burr",
+	"version": "0.1.0",
+	"minAppVersion": "1.4.0",
+	"description": "Relecture de prose littéraire en français : surligne les répétitions pendant la frappe, sans rien remplacer.",
+	"author": "Matthieu Thomas",
+	"authorUrl": "https://github.com/mtthth",
+	"isDesktopOnly": false
+}

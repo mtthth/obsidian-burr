@@ -1,0 +1,24 @@
+{
+	"name": "obsidian-burr",
+	"version": "0.1.0",
+	"description": "Relecture de prose littéraire en français pour Obsidian : surligne les répétitions pendant la frappe",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"test": "node --test test/*.test.ts"
+	},
+	"keywords": [],
+	"author": "Matthieu Thomas",
+	"license": "MIT",
+	"devDependencies": {
+		"@codemirror/state": "6.5.0",
+		"@codemirror/view": "6.38.6",
+		"@types/node": "^20.0.0",
+		"builtin-modules": "^3.3.0",
+		"esbuild": "^0.20.0",
+		"obsidian": "latest",
+		"tslib": "2.4.0",
+		"typescript": "^5.0.0"
+	}
+}

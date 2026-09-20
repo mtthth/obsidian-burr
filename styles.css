@@ -1,0 +1,18 @@
+/* Répétitions : trois intensités, de la plus discrète (occurrences éloignées) à la plus marquée. */
+.burr-repetition {
+	border-radius: 3px;
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+}
+
+.burr-repetition-1 {
+	background-color: rgba(var(--color-orange-rgb), 0.16);
+}
+
+.burr-repetition-2 {
+	background-color: rgba(var(--color-orange-rgb), 0.3);
+}
+
+.burr-repetition-3 {
+	background-color: rgba(var(--color-orange-rgb), 0.5);
+}
