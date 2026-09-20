@@ -9,7 +9,7 @@
 		"test": "node --test test/*.test.ts"
 	},
 	"keywords": [],
-	"author": "Matthieu Thomas",
+	"author": "Matthieu Thomas (cidrolin)",
 	"license": "MIT",
 	"devDependencies": {
 		"@codemirror/state": "6.5.0",
