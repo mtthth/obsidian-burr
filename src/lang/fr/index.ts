@@ -27,4 +27,6 @@ export const french: Language = {
 		// Passage entre guillemets français.
 		/«[^»\n]*»/g,
 	],
+	// Guillemets, tirets de dialogue (« -- » : tiret cadratin tapé au clavier), parenthèse.
+	sentenceOpeners: /[«“"—–(]|--/,
 };

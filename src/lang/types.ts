@@ -14,4 +14,10 @@ export interface Language {
 	stem(word: string): string;
 	/** Motifs (drapeau `g`) des répliques de dialogue, ignorées si l'option est activée. */
 	readonly dialogue: readonly RegExp[];
+	/**
+	 * Signes qui ouvrent une phrase ou une réplique sans ponctuation forte
+	 * avant eux (« Il dit : « Viens » »). La majuscule qui les suit ne prouve pas
+	 * un nom propre. Motif sans drapeau `g`, utilisé avec `test`.
+	 */
+	readonly sentenceOpeners: RegExp;
 }

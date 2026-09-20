@@ -21,6 +21,10 @@ Pour l'instant, Burr ne fait qu'une chose : la détection automatique des répé
 
 Le mode Lecture n'est pas couvert : Burr travaille dans l'éditeur.
 
+### Performances
+
+À chaque pause dans la frappe, Burr analyse le **document entier**. Sur un roman de 190 000 mots, cela prend environ un tiers de seconde (mesuré sous Node) ; pour une note de la taille d'un chapitre, c'est imperceptible. Si vous écrivez tout un manuscrit dans un seul fichier, l'éditeur peut marquer un temps d'arrêt après chaque pause : désactivez alors le surlignage (commande ci-dessous) ou découpez le manuscrit.
+
 ## Réglages
 
 | Réglage | Effet |
@@ -39,7 +43,7 @@ Le mode Lecture n'est pas couvert : Burr travaille dans l'éditeur.
 
 ## Langue
 
-Burr traite le **français** uniquement, et tout document est vu comme du français. Le code est déjà prévu pour qu'un document puisse avoir sa propre langue : tout ce qui en dépend (mots-outils, stemmer, marques de dialogue) vit dans un objet `Language`, et la langue d'un document se décide en un seul endroit (`resolveLanguage`, dans [src/lang/index.ts](src/lang/index.ts)). Il n'y a pas encore de sélecteur.
+Burr traite le **français** uniquement, et tout document est vu comme du français. Le code est déjà prévu pour qu'un document puisse avoir sa propre langue : tout ce qui en dépend (mots-outils, stemmer, marques de dialogue et d'ouverture de phrase) vit dans un objet `Language`, et la langue d'un document se décide en un seul endroit (`resolveLanguage`, dans [src/lang/index.ts](src/lang/index.ts)). Il n'y a pas encore de sélecteur.
 
 ## Installation
 

@@ -27,10 +27,8 @@ export interface Token {
  */
 const WORD = /[\p{L}\p{N}\p{M}]+/gu;
 
-/** Ponctuation qui ferme une phrase ou une proposition, et fin de ligne. */
+/** Ponctuation qui ferme une phrase ou une proposition, et fin de ligne (commune aux langues latines et germaniques). */
 const HARD_BREAK = /[.!?…;:\n]/;
-/** Ce qui ouvre une phrase ou une réplique sans la ponctuation forte (« -- » : tiret de dialogue tapé au clavier). */
-const OPENER = /[«“"—–(]|--/;
 const UPPERCASE_FIRST = /^\p{Lu}/u;
 
 /**
@@ -59,7 +57,7 @@ export function tokenize(text: string, language: Language, options: IgnoreOption
 			to,
 			norm: match[0].toLowerCase().normalize("NFC"),
 			capitalized: UPPERCASE_FIRST.test(match[0]),
-			sentenceStart: newSegment || OPENER.test(gap),
+			sentenceStart: newSegment || language.sentenceOpeners.test(gap),
 			segment,
 		});
 		previousEnd = to;

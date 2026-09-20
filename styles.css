@@ -1,4 +1,7 @@
-/* Répétitions : trois intensités, de la plus discrète (occurrences éloignées) à la plus marquée. */
+/*
+ * Répétitions : trois intensités, de la plus discrète (occurrences éloignées) à la plus marquée.
+ * Le repli après la première virgule sert si un thème ne définit pas --color-orange-rgb.
+ */
 .burr-repetition {
 	border-radius: 3px;
 	-webkit-box-decoration-break: clone;
@@ -6,13 +9,13 @@
 }
 
 .burr-repetition-1 {
-	background-color: rgba(var(--color-orange-rgb), 0.16);
+	background-color: rgba(var(--color-orange-rgb, 236, 117, 0), 0.16);
 }
 
 .burr-repetition-2 {
-	background-color: rgba(var(--color-orange-rgb), 0.3);
+	background-color: rgba(var(--color-orange-rgb, 236, 117, 0), 0.3);
 }
 
 .burr-repetition-3 {
-	background-color: rgba(var(--color-orange-rgb), 0.5);
+	background-color: rgba(var(--color-orange-rgb, 236, 117, 0), 0.5);
 }
