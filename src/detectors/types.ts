@@ -17,9 +17,16 @@ export interface Highlight {
 	family: string;
 	/** 1 (discret) à 3 (marqué). */
 	intensity: 1 | 2 | 3;
+	/**
+	 * Ce qui ne va pas, en une phrase : l'infobulle au survol. Écrit à la demande,
+	 * car un seul passage à la fois est survolé.
+	 */
+	explain(): string;
 }
 
 export interface DetectionInput {
+	/** Le texte d'origine, dans lequel `tokens` donne des positions. */
+	text: string;
 	tokens: readonly Token[];
 	language: Language;
 	settings: BurrSettings;

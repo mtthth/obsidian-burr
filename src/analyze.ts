@@ -8,6 +8,6 @@ import { tokenize } from "./text/tokenize.ts";
 export function analyze(text: string, settings: BurrSettings): Highlight[] {
 	const language = resolveLanguage({ text });
 	const tokens = tokenize(text, language, { ignoreDialogue: settings.ignoreDialogue });
-	const highlights = detectors.flatMap((detector) => detector.detect({ tokens, language, settings }));
+	const highlights = detectors.flatMap((detector) => detector.detect({ text, tokens, language, settings }));
 	return highlights.sort((a, b) => a.from - b.from || a.to - b.to);
 }

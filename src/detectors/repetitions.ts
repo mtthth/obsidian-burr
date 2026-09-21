@@ -18,6 +18,12 @@ function intensityFor(distance: number, window: number): Intensity {
 	return ratio <= 0.2 ? 3 : ratio <= 0.5 ? 2 : 1;
 }
 
+/** Où se trouve l'autre occurrence, en mots : « 5 mots plus haut », « juste après »… */
+function where(distance: number, before: boolean): string {
+	if (distance === 1) return before ? "juste avant" : "juste après";
+	return `${distance} mots plus ${before ? "haut" : "loin"}`;
+}
+
 /**
  * Mots qui s'écrivent avec une majuscule ailleurs qu'en début de phrase :
  * des noms propres. Un personnage qui revient sans cesse n'est pas une répétition.
@@ -45,7 +51,7 @@ function properNames(tokens: readonly Token[], stopwords: ReadonlySet<string>): 
  * - Expressions de 2 à `maxNgram` mots (« tout de même ») : la plus longue
  *   l'emporte sur les mots qu'elle contient.
  */
-function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
+function detect({ text, tokens, language, settings }: DetectionInput): Highlight[] {
 	const count = tokens.length;
 	const reach = settings.window;
 
@@ -67,10 +73,43 @@ function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
 	}
 
 	const wordLevel = new Uint8Array(count); // mots isolés
+	const wordOther = new Int32Array(count); // le mot auquel il a été rapproché, à son niveau le plus marqué
+	const wordSame = new Uint8Array(count); // 1 si c'est la même forme, 0 si la racine seulement
 	const phraseLevel = new Uint8Array(count); // mots couverts par une expression répétée
 	const phraseKey = new Array<string>(count); // l'expression qui couvre chaque mot
-	const raise = (levels: Uint8Array, index: number, level: number) => {
-		if (level > levels[index]) levels[index] = level;
+	const phraseStart = new Int32Array(count); // le premier mot de cette occurrence de l'expression
+	const phraseOther = new Int32Array(count); // le premier mot de l'autre occurrence
+	const phraseSize = new Uint8Array(count); // le nombre de mots de l'expression
+
+	// Un mot garde le rapprochement le plus marqué (le premier à égalité) : c'est celui que l'infobulle explique.
+	const raiseWord = (index: number, level: number, other: number, same: boolean) => {
+		if (level <= wordLevel[index]) return;
+		wordLevel[index] = level;
+		wordOther[index] = other;
+		wordSame[index] = same ? 1 : 0;
+	};
+	const raisePhrase = (index: number, level: number, key: string, start: number, other: number, size: number) => {
+		if (level <= phraseLevel[index]) return;
+		phraseLevel[index] = level;
+		phraseKey[index] = key;
+		phraseStart[index] = start;
+		phraseOther[index] = other;
+		phraseSize[index] = size;
+	};
+
+	// Les infobulles. Chaque plage rend une fonction qui écrit sa phrase à la demande.
+	const textOf = (first: number, last: number) => text.slice(tokens[first].from, tokens[last].to);
+	const explainWord = (index: number, other: number, same: boolean) => (): string => {
+		const before = other < index;
+		const place = where(Math.abs(index - other), before);
+		return same
+			? `« ${textOf(index, index)} » ${before ? "apparaît déjà" : "revient"} ${place}.`
+			: `« ${textOf(index, index)} » a la même racine que « ${textOf(other, other)} » (${place}).`;
+	};
+	const explainPhrase = (start: number, other: number, size: number) => (): string => {
+		const before = other < start;
+		const place = where(Math.abs(start - other), before);
+		return `L'expression « ${textOf(start, start + size - 1)} » ${before ? "apparaît déjà" : "revient"} ${place}.`;
 	};
 
 	// Famille d'un mot isolé : sa racine quand le stemming est actif (regardait,
@@ -92,8 +131,8 @@ function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
 		const previous = lastSeen.get(word);
 		if (previous !== undefined && i - previous <= reach) {
 			const level = intensityFor(i - previous, reach);
-			raise(wordLevel, i, level);
-			raise(wordLevel, previous, level);
+			raiseWord(i, level, previous, true);
+			raiseWord(previous, level, i, true);
 		}
 		lastSeen.set(word, i);
 	}
@@ -116,8 +155,8 @@ function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
 			}
 			if (nearest >= 0 && i - nearest <= reach / 2) {
 				const level = intensityFor(i - nearest, reach) === 3 ? 2 : 1;
-				raise(wordLevel, i, level);
-				raise(wordLevel, nearest, level);
+				raiseWord(i, level, nearest, false);
+				raiseWord(nearest, level, i, false);
 			}
 			forms.set(word, i);
 		}
@@ -151,12 +190,8 @@ function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
 					const boost = size >= 3 ? 1 : 0;
 					const level = Math.min(3, intensityFor(distance, reach) + boost);
 					for (let k = 0; k < size; k++) {
-						for (const index of [i + k, previous + k]) {
-							if (level > phraseLevel[index]) {
-								phraseLevel[index] = level;
-								phraseKey[index] = key;
-							}
-						}
+						raisePhrase(i + k, level, key, i, previous, size);
+						raisePhrase(previous + k, level, key, previous, i, size);
 					}
 				}
 			}
@@ -183,6 +218,7 @@ function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
 				category: REPETITION,
 				family: phraseKey[strongest],
 				intensity: level as Intensity,
+				explain: explainPhrase(phraseStart[strongest], phraseOther[strongest], phraseSize[strongest]),
 			});
 			i = end;
 		} else {
@@ -193,6 +229,7 @@ function detect({ tokens, language, settings }: DetectionInput): Highlight[] {
 					category: REPETITION,
 					family: wordFamily(i),
 					intensity: wordLevel[i] as Intensity,
+					explain: explainWord(i, wordOther[i], wordSame[i] === 1),
 				});
 			}
 			i++;

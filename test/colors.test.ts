@@ -5,7 +5,7 @@ import type { ColorMemory } from "../src/colors.ts";
 import type { Highlight } from "../src/detectors/types.ts";
 
 /** Une plage à `from`, de la famille `family`. */
-const at = (from: number, family: string): Highlight => ({ from, to: from + 5, category: "repetition", family, intensity: 3 });
+const at = (from: number, family: string): Highlight => ({ from, to: from + 5, category: "repetition", family, intensity: 3, explain: () => "" });
 
 test("les occurrences d'une même famille ont la même couleur", () => {
 	const colors = assignColors([at(0, "porte"), at(20, "fenêtre"), at(40, "porte"), at(60, "fenêtre")], new Map());

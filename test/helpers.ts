@@ -14,6 +14,12 @@ export function families(text: string, overrides: Partial<BurrSettings> = {}): A
 	return analyze(text, settings).map((h) => [text.slice(h.from, h.to), h.family]);
 }
 
+/** Les passages surlignés avec ce que dit leur infobulle. */
+export function explanations(text: string, overrides: Partial<BurrSettings> = {}): Array<[string, string]> {
+	const settings: BurrSettings = { ...DEFAULT_SETTINGS, ...overrides };
+	return analyze(text, settings).map((h) => [text.slice(h.from, h.to), h.explain()]);
+}
+
 /** Comme `highlighted`, sans les intensités. */
 export function words(text: string, overrides: Partial<BurrSettings> = {}): string[] {
 	return highlighted(text, overrides).map(([passage]) => passage);

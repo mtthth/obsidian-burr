@@ -11,6 +11,7 @@ Pour l'instant, Burr ne fait qu'une chose : la détection automatique des répé
 - **Par proximité, pas par fréquence.** Deux occurrences sont signalées si elles sont séparées par au plus *N* mots (80 par défaut, réglable de 20 à 200). Un mot qui revient à cent pages d'écart ne gêne personne.
 - **Une couleur par famille.** Toutes les occurrences d'un même mot (formes voisines comprises) ou d'une même expression partagent une couleur, et chaque famille a la sienne : on voit d'un coup d'œil quelles plages se répondent. Douze couleurs ; à l'intérieur d'un écran, deux familles voisines n'en partagent une que si plus de douze familles s'y croisent, et la couleur choisie est alors celle dont l'autre occurrence est la plus éloignée. Une famille garde sa couleur pendant que vous tapez.
 - **Une intensité selon la distance.** Trois nuances de fond : plus les deux occurrences sont proches, plus le surlignage est marqué.
+- **Au survol, ce qui ne va pas.** Passer la souris sur un passage surligné affiche une infobulle qui dit où se trouve l'autre occurrence : « *regardait* apparaît déjà 12 mots plus haut », « l'expression *tout de même* revient juste après », « *regarda* a la même racine que *regardait* (4 mots plus haut) ». Quand un mot revient plusieurs fois, l'infobulle parle de l'occurrence qui a fait pencher le surlignage, la plus proche.
 - **Mots isolés et expressions.** Burr repère aussi les suites de 2 à 4 mots (« tout de même », « il n'y avait pas »). Quand une expression revient, elle est surlignée d'un bloc plutôt que mot par mot.
 - **Formes d'un même mot.** Grâce à un stemmer [Snowball](https://snowballstem.org/) français, *regardait*, *regarda* et *regardant* se rapprochent. Ces rapprochements sont surlignés plus discrètement et sur une distance plus courte, car un stemmer se trompe parfois.
 - **Le bruit est écarté.**
@@ -86,7 +87,7 @@ src/
 ```
 
 - Le texte est découpé **une seule fois** ; tous les détecteurs travaillent sur les mêmes mots.
-- Un détecteur reçoit les mots et rend des plages `{from, to, category, intensity}`. En ajouter un ne touche ni l'éditeur ni l'interface : il suffit de l'inscrire dans [src/detectors/index.ts](src/detectors/index.ts).
+- Un détecteur reçoit les mots et rend des plages `{from, to, category, family, intensity, explain}` ; `explain()` écrit à la demande la phrase de l'infobulle. En ajouter un ne touche ni l'éditeur ni l'interface : il suffit de l'inscrire dans [src/detectors/index.ts](src/detectors/index.ts).
 - La normalisation typographique (apostrophe ’, espaces insécables) **conserve la longueur du texte**, pour que les positions des surlignages restent exactes.
 
 ## Crédits

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { analyze } from "../src/analyze.ts";
 import { DEFAULT_SETTINGS } from "../src/settings.ts";
-import { families, highlighted, words } from "./helpers.ts";
+import { explanations, families, highlighted, words } from "./helpers.ts";
 
 /** N mots de remplissage sans aucune répétition (vocabulaire de 400 mots distincts). */
 function filler(count: number): string {
@@ -142,6 +142,36 @@ test("une expression répétée a sa famille, distincte de celle des mots qu'ell
 	assert.equal(phrase.length, 2);
 	assert.equal(phrase[0][1], phrase[1][1]);
 	assert.notEqual(phrase[0][1], found.find(([passage]) => passage === "vin")?.[1]);
+});
+
+test("l'infobulle d'un mot répété dit où est l'autre occurrence", () => {
+	assert.deepEqual(explanations(`Un chien. ${filler(10)} Un chien.`), [
+		["chien", "« chien » revient 12 mots plus loin."],
+		["chien", "« chien » apparaît déjà 12 mots plus haut."],
+	]);
+	assert.deepEqual(explanations("Une porte porte close."), [["porte", "« porte » revient juste après."], ["porte", "« porte » apparaît déjà juste avant."]]);
+});
+
+test("l'infobulle d'un mot au milieu d'une série parle de l'occurrence la plus proche", () => {
+	const text = `Un chien. ${filler(30)} Un chien. ombre lueur brume sable Un chien.`;
+	const [first, middle, last] = explanations(text).map(([, message]) => message);
+	assert.equal(first, "« chien » revient 32 mots plus loin.");
+	assert.equal(middle, "« chien » revient 6 mots plus loin.");
+	assert.equal(last, "« chien » apparaît déjà 6 mots plus haut.");
+});
+
+test("l'infobulle d'une autre forme du même mot nomme l'autre forme", () => {
+	assert.deepEqual(explanations("Il regardait la mer. Elle regarda le ciel."), [
+		["regardait", "« regardait » a la même racine que « regarda » (4 mots plus loin)."],
+		["regarda", "« regarda » a la même racine que « regardait » (4 mots plus haut)."],
+	]);
+});
+
+test("l'infobulle d'une expression la cite en entier", () => {
+	assert.deepEqual(explanations("Il mangea tout de même la soupe. Elle but tout de même le vin."), [
+		["tout de même", "L'expression « tout de même » revient 7 mots plus loin."],
+		["tout de même", "L'expression « tout de même » apparaît déjà 7 mots plus haut."],
+	]);
 });
 
 test("un texte vide ou sans mots ne plante pas", () => {

@@ -1,10 +1,11 @@
 import { StateEffect, StateField } from "@codemirror/state";
 import type { Extension } from "@codemirror/state";
-import { Decoration, EditorView, ViewPlugin } from "@codemirror/view";
+import { Decoration, EditorView, ViewPlugin, hoverTooltip } from "@codemirror/view";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
 import { analyze } from "../analyze.ts";
 import { PALETTE_SIZE, assignColors } from "../colors.ts";
 import type { ColorMemory } from "../colors.ts";
+import type { Highlight } from "../detectors/types.ts";
 import type { BurrSettings } from "../settings.ts";
 
 /** Attente après la dernière frappe avant de relancer l'analyse. */
@@ -16,10 +17,17 @@ const setHighlights = StateEffect.define<DecorationSet>();
 /** Demande une nouvelle analyse tout de suite (réglages modifiés). */
 export const refreshHighlights = StateEffect.define<null>();
 
-/** Une décoration par couleur puis par intensité (1 à 3), partagées entre toutes les plages. */
-const marks = Array.from({ length: PALETTE_SIZE }, (_, color) =>
-	[1, 2, 3].map((level) => Decoration.mark({ class: `burr-repetition burr-repetition-${level} burr-color-${color}` })),
+/** Les classes CSS par couleur puis par intensité (1 à 3). */
+const classes = Array.from({ length: PALETTE_SIZE }, (_, color) =>
+	[1, 2, 3].map((level) => `burr-repetition burr-repetition-${level} burr-color-${color}`),
 );
+
+/** Le passage sous le pointeur, avec de quoi écrire son infobulle. */
+interface Hovered {
+	from: number;
+	to: number;
+	explain: Highlight["explain"];
+}
 
 // Entre deux analyses, les surlignages suivent le texte que l'on tape : sans cela
 // ils glisseraient sous le curseur pendant les 250 ms d'attente.
@@ -38,9 +46,42 @@ const highlightField = StateField.define<DecorationSet>({
 function buildDecorations(text: string, settings: BurrSettings, memory: ColorMemory): DecorationSet {
 	const highlights = analyze(text, settings);
 	const colors = assignColors(highlights, memory);
-	const ranges = highlights.map((h, i) => marks[colors[i]][h.intensity - 1].range(h.from, h.to));
+	const ranges = highlights.map((h, i) =>
+		// La décoration porte aussi l'explication, que l'infobulle retrouve par sa position.
+		Decoration.mark({ class: classes[colors[i]][h.intensity - 1], explain: h.explain }).range(h.from, h.to),
+	);
 	return Decoration.set(ranges, true);
 }
+
+/**
+ * Au survol d'un passage surligné, dit ce qui ne va pas. Les plages ne se
+ * chevauchent pas ; la décoration suit le texte pendant la frappe, l'infobulle aussi.
+ */
+const explanation = hoverTooltip(
+	(view, pos, side) => {
+		let hovered = null as Hovered | null;
+		view.state.field(highlightField).between(pos, pos, (from, to, value) => {
+			// À la limite de deux passages, le pointeur est sur celui du côté où il se trouve.
+			if ((from === pos && side < 0) || (to === pos && side > 0)) return;
+			hovered = { from, to, explain: value.spec.explain };
+			return false;
+		});
+		if (!hovered) return null;
+		const { from, to, explain } = hovered as Hovered;
+		return {
+			pos: from,
+			end: to,
+			above: true,
+			create: (editor) => {
+				const dom = editor.dom.ownerDocument.createElement("div");
+				dom.className = "burr-tooltip";
+				dom.textContent = explain();
+				return { dom };
+			},
+		};
+	},
+	{ hideOnChange: true },
+);
 
 /** Surligne les répétitions du document, en mode source comme en aperçu en direct. */
 export function burrHighlighter(getSettings: () => BurrSettings): Extension {
@@ -87,5 +128,5 @@ export function burrHighlighter(getSettings: () => BurrSettings): Extension {
 			}
 		},
 	);
-	return [highlightField, scheduler];
+	return [highlightField, explanation, scheduler];
 }

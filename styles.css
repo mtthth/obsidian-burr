@@ -40,3 +40,26 @@
 .burr-color-9 { --burr-rgb: 72, 84, 200; }
 .burr-color-10 { --burr-rgb: 160, 100, 60; }
 .burr-color-11 { --burr-rgb: 0, 150, 136; }
+
+/*
+ * Infobulle au survol : ce que Burr reproche au passage. CodeMirror enveloppe notre
+ * élément dans son propre `.cm-tooltip` : le texte se règle sur `.burr-tooltip`, le cadre
+ * sur l'enveloppe, avec assez de poids pour l'emporter sur le style de base de CodeMirror.
+ * Les variables suivent le thème.
+ */
+.cm-tooltip.cm-tooltip-hover:has(> .burr-tooltip) {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s, 4px);
+	background-color: var(--background-secondary);
+	box-shadow: var(--shadow-s);
+	pointer-events: none;
+}
+
+.burr-tooltip {
+	max-width: 22em;
+	padding: 4px 8px;
+	color: var(--text-normal);
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-smaller, 12px);
+	line-height: 1.4;
+}
