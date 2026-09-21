@@ -23,6 +23,14 @@ Pour l'instant, Burr ne fait qu'une chose : la détection automatique des répé
 
 Le mode Lecture n'est pas couvert : Burr travaille dans l'éditeur.
 
+### Choisir ce qui est analysé
+
+- **Une note à part : clic droit dans son texte**, puis « Burr : ignorer cette note ». Burr ajoute la balise `burr-ignorer` aux `tags` du YAML de la note (le texte n'est pas touché) et cesse de la surligner. Le même menu propose ensuite « Burr : réactiver pour cette note », qui retire la balise ; on peut aussi la poser ou l'ôter à la main. Sur mobile, le menu s'ouvre par un appui long.
+- **Des dossiers à analyser**, dans les réglages : si la liste n'est pas vide, seules les notes de ces dossiers (sous-dossiers compris) sont analysées ; vide, tout le coffre l'est.
+- **Des dossiers à ignorer** : leurs notes ne sont jamais analysées. Ignorer l'emporte sur analyser : avec `Roman` à analyser et `Roman/Brouillons` à ignorer, seuls les brouillons sont laissés de côté.
+- Un dossier par ligne, chemin depuis la racine du coffre, sans tenir compte des majuscules. Une note déplacée dans un autre dossier change de statut tout de suite.
+- Quand un dossier écarte déjà une note, le menu contextuel ne propose rien : la balise n'y changerait rien.
+
 ### Performances
 
 À chaque pause dans la frappe, Burr analyse le **document entier**. Sur un roman de 190 000 mots, cela prend environ un tiers de seconde (mesuré sous Node) ; pour une note de la taille d'un chapitre, c'est imperceptible. Si vous écrivez tout un manuscrit dans un seul fichier, l'éditeur peut marquer un temps d'arrêt après chaque pause : désactivez alors le surlignage (commande ci-dessous) ou découpez le manuscrit.
@@ -38,10 +46,13 @@ Le mode Lecture n'est pas couvert : Burr travaille dans l'éditeur.
 | Ignorer les noms propres | Écarte les mots qui prennent une majuscule en milieu de phrase. |
 | Ignorer les dialogues | Écarte les lignes qui commencent par un tiret cadratin (— ou --) et les passages entre guillemets français. Attention : une réplique est écartée en entier, incidente comprise (« dit-il »). |
 | Mots à ignorer en plus | Vos propres exceptions, un mot par ligne ou séparés par des virgules. |
+| Dossiers à analyser | Un dossier par ligne. Vide : toutes les notes ; sinon, seulement celles de ces dossiers. |
+| Dossiers à ignorer | Un dossier par ligne. Ces notes ne sont jamais analysées, même dans un dossier à analyser. |
 
 ## Commande
 
 - **Afficher ou masquer les répétitions** : bascule le surlignage.
+- **Burr : ignorer cette note** / **Burr : réactiver pour cette note** : dans le menu du clic droit, pose ou retire la balise `burr-ignorer` dans le YAML de la note.
 
 ## Langue
 
@@ -78,6 +89,7 @@ Le chemin est mémorisé dans `deploy.local.json` (ignoré par git) : les fois s
 src/
   main.ts               le plugin : réglages, commande, extension d'éditeur
   settingsTab.ts        l'onglet de réglages
+  scope.ts              quelles notes sont analysées : dossiers à inclure ou ignorer, balise du YAML
   analyze.ts            texte -> mots -> détecteurs -> plages à surligner
   colors.ts             une couleur par famille de plages, stable pendant la frappe
   text/                 normalisation, zones ignorées, découpage en mots

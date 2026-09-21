@@ -13,6 +13,10 @@ export interface BurrSettings {
 	ignoreDialogue: boolean;
 	/** Mots à ne jamais signaler, en plus des mots-outils. */
 	extraIgnoredWords: string;
+	/** Dossiers à analyser, un par ligne ; vide : tout le coffre. */
+	includedFolders: string;
+	/** Dossiers à ne jamais analyser, un par ligne. */
+	excludedFolders: string;
 }
 
 export const WINDOW_RANGE = { min: 20, max: 200, step: 10 } as const;
@@ -26,6 +30,8 @@ export const DEFAULT_SETTINGS: BurrSettings = {
 	ignoreProperNames: true,
 	ignoreDialogue: false,
 	extraIgnoredWords: "",
+	includedFolders: "",
+	excludedFolders: "",
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
@@ -38,6 +44,8 @@ export function sanitizeSettings(raw: Partial<BurrSettings> | null | undefined):
 		window: clamp(Math.round(Number(merged.window)) || DEFAULT_SETTINGS.window, WINDOW_RANGE.min, WINDOW_RANGE.max),
 		maxNgram: clamp(Math.round(Number(merged.maxNgram)) || DEFAULT_SETTINGS.maxNgram, NGRAM_RANGE.min, NGRAM_RANGE.max),
 		extraIgnoredWords: String(merged.extraIgnoredWords ?? ""),
+		includedFolders: String(merged.includedFolders ?? ""),
+		excludedFolders: String(merged.excludedFolders ?? ""),
 	};
 }
 

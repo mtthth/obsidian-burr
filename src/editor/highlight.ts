@@ -83,8 +83,11 @@ const explanation = hoverTooltip(
 	{ hideOnChange: true },
 );
 
-/** Surligne les répétitions du document, en mode source comme en aperçu en direct. */
-export function burrHighlighter(getSettings: () => BurrSettings): Extension {
+/**
+ * Surligne les répétitions du document, en mode source comme en aperçu en direct.
+ * `isExcluded` dit si la note de cet éditeur est laissée de côté (dossier, balise du YAML).
+ */
+export function burrHighlighter(getSettings: () => BurrSettings, isExcluded: (view: EditorView) => boolean): Extension {
 	const scheduler = ViewPlugin.fromClass(
 		class {
 			private view: EditorView;
@@ -121,7 +124,7 @@ export function burrHighlighter(getSettings: () => BurrSettings): Extension {
 			private run() {
 				this.timer = null;
 				const settings = getSettings();
-				const decorations = settings.enabled
+				const decorations = settings.enabled && !isExcluded(this.view)
 					? buildDecorations(this.view.state.doc.toString(), settings, this.colors)
 					: Decoration.none;
 				this.view.dispatch({ effects: setHighlights.of(decorations) });

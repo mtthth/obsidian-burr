@@ -92,5 +92,30 @@ export class BurrSettingTab extends PluginSettingTab {
 				});
 				area.inputEl.rows = 4;
 			});
+
+		new Setting(containerEl)
+			.setName("Dossiers à analyser")
+			.setDesc("Un dossier par ligne (par exemple Roman/Chapitres). Vide : toutes les notes sont analysées. Sinon, seules celles de ces dossiers, sous-dossiers compris, le sont.")
+			.addTextArea((area) => {
+				area.setPlaceholder("Roman").setValue(settings.includedFolders).onChange(async (value) => {
+					settings.includedFolders = value;
+					await save();
+				});
+				area.inputEl.rows = 3;
+			});
+
+		new Setting(containerEl)
+			.setName("Dossiers à ignorer")
+			.setDesc(
+				"Un dossier par ligne. Ces dossiers, sous-dossiers compris, ne sont jamais analysés, même au sein d'un dossier à analyser. " +
+					"Une note seule s'écarte par un clic droit dans son texte (« Burr : ignorer cette note »), qui ajoute la balise burr-ignorer à son YAML.",
+			)
+			.addTextArea((area) => {
+				area.setPlaceholder("Roman/Brouillons").setValue(settings.excludedFolders).onChange(async (value) => {
+					settings.excludedFolders = value;
+					await save();
+				});
+				area.inputEl.rows = 3;
+			});
 	}
 }
