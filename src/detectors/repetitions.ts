@@ -75,6 +75,9 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 	const wordLevel = new Uint8Array(count); // mots isolés
 	const wordOther = new Int32Array(count); // le mot auquel il a été rapproché, à son niveau le plus marqué
 	const wordSame = new Uint8Array(count); // 1 si c'est la même forme, 0 si la racine seulement
+	// La racine par laquelle une forme a été rapprochée d'une autre : c'est la famille de toutes
+	// ses occurrences, même celles que seule la même forme relie (mangeons … mangeons … manger).
+	const familyOfForm = new Map<string, string>();
 	const phraseLevel = new Uint8Array(count); // mots couverts par une expression répétée
 	const phraseKey = new Array<string>(count); // l'expression qui couvre chaque mot
 	const phraseStart = new Int32Array(count); // le premier mot de cette occurrence de l'expression
@@ -102,9 +105,13 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 	const explainWord = (index: number, other: number, same: boolean) => (): string => {
 		const before = other < index;
 		const place = where(Math.abs(index - other), before);
-		return same
-			? `« ${textOf(index, index)} » ${before ? "apparaît déjà" : "revient"} ${place}.`
-			: `« ${textOf(index, index)} » a la même racine que « ${textOf(other, other)} » (${place}).`;
+		if (same) return `« ${textOf(index, index)} » ${before ? "apparaît déjà" : "revient"} ${place}.`;
+		// Deux formes d'un verbe irrégulier n'ont pas de racine commune : on nomme l'infinitif.
+		const lemma = language.lemma?.(tokens[index].norm);
+		if (lemma !== undefined && lemma === language.lemma?.(tokens[other].norm)) {
+			return `« ${textOf(index, index)} » et « ${textOf(other, other)} » sont deux formes de « ${lemma} » (${place}).`;
+		}
+		return `« ${textOf(index, index)} » a la même racine que « ${textOf(other, other)} » (${place}).`;
 	};
 	const explainPhrase = (start: number, other: number, size: number) => (): string => {
 		const before = other < start;
@@ -112,15 +119,28 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 		return `L'expression « ${textOf(start, start + size - 1)} » ${before ? "apparaît déjà" : "revient"} ${place}.`;
 	};
 
-	// Famille d'un mot isolé : sa racine quand le stemming est actif (regardait,
-	// regarda et regardant se répondent), sinon sa forme.
+	// Famille d'un mot isolé : quand le stemming est actif, l'infinitif d'un verbe
+	// irrégulier (fait, faisons, ferai), la racine par laquelle il a été rapproché
+	// d'une autre forme, ou à défaut sa racine (regardait, regarda et regardant se
+	// répondent) ; sans stemming, sa forme.
 	const wordFamily = (index: number): string => {
 		const word = tokens[index].norm;
 		if (settings.useStemming) {
+			const lemma = language.lemma?.(word);
+			if (lemma !== undefined) return lemma;
+			const linked = familyOfForm.get(word);
+			if (linked !== undefined) return linked;
 			const stem = language.stem(word);
 			if (stem.length >= MIN_STEM_LENGTH) return stem;
 		}
 		return word;
+	};
+
+	// Les racines d'un mot, assez longues pour ne pas rapprocher n'importe quoi. L'infinitif
+	// d'un verbe irrégulier vient en premier : à distance égale, c'est lui qui relie.
+	const stemsOf = (word: string): string[] => {
+		const stems = [language.lemma?.(word), language.stem(word), language.altStem?.(word)];
+		return stems.filter((stem): stem is string => stem !== undefined && stem.length >= MIN_STEM_LENGTH);
 	};
 
 	// 1. Même forme.
@@ -137,28 +157,40 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 		lastSeen.set(word, i);
 	}
 
-	// 2. Même racine, forme différente.
+	// 2. Même racine, forme différente. Un mot peut avoir deux racines (« mangeons » :
+	// « mangeon » et « mang ») : il est rangé sous les deux, et rapproché du plus proche.
 	if (settings.useStemming) {
 		const formsByStem = new Map<string, Map<string, number>>();
 		for (let i = 0; i < count; i++) {
 			if (kind[i] !== FULL) continue;
 			const word = tokens[i].norm;
-			const stem = language.stem(word);
-			if (stem.length < MIN_STEM_LENGTH) continue;
-
-			let forms = formsByStem.get(stem);
-			if (!forms) formsByStem.set(stem, (forms = new Map()));
 
 			let nearest = -1;
-			for (const [form, index] of forms) {
-				if (form !== word && index > nearest) nearest = index;
+			let nearestStem = "";
+			for (const stem of stemsOf(word)) {
+				let forms = formsByStem.get(stem);
+				if (!forms) formsByStem.set(stem, (forms = new Map()));
+				for (const [form, index] of forms) {
+					if (form !== word && index > nearest) {
+						nearest = index;
+						nearestStem = stem;
+					}
+				}
+				forms.set(word, i);
 			}
 			if (nearest >= 0 && i - nearest <= reach / 2) {
 				const level = intensityFor(i - nearest, reach) === 3 ? 2 : 1;
 				raiseWord(i, level, nearest, false);
 				raiseWord(nearest, level, i, false);
+				// Ces deux formes ont désormais la même famille. Un verbe irrégulier donne
+				// la sienne (« connaissance » rapproché de « connaissait » suit « connaître ») ;
+				// il n'a pas besoin d'être noté, sa famille est déjà celle de son infinitif.
+				const other = tokens[nearest].norm;
+				const family = language.lemma?.(word) ?? language.lemma?.(other) ?? nearestStem;
+				for (const form of [word, other]) {
+					if (language.lemma?.(form) === undefined) familyOfForm.set(form, family);
+				}
 			}
-			forms.set(word, i);
 		}
 	}
 

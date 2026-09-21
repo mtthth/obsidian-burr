@@ -67,6 +67,76 @@ test("les formes d'un même mot sont rapprochées, plus discrètement", () => {
 	assert.deepEqual(words(text, { useStemming: false }), []);
 });
 
+test("la première personne du pluriel est rapprochée de son infinitif, que Snowball laisse de côté", () => {
+	assert.deepEqual(words("Il faut manger manger mangeons."), ["manger", "manger", "mangeons"]);
+	assert.deepEqual(words("Nous chantons la chanson. Il chanter le soir."), ["chantons", "chanter"]);
+	assert.deepEqual(words("Nous plaçons la table. Il faut placer la chaise."), ["plaçons", "placer"]);
+	assert.deepEqual(words("Nous mangeons le pain. Il faut manger le fromage.", { useStemming: false }), []);
+});
+
+test("cette racine de plus ne défait pas le rapprochement d'un nom et de son pluriel", () => {
+	assert.deepEqual(words("Une maison blanche. Trois maisons rouges."), ["maison", "maisons"]);
+	assert.deepEqual(words("Un poisson dans l'eau. Deux poissons dans le seau."), ["poisson", "poissons"]);
+});
+
+test("un verbe rapproché par sa seconde racine partage la famille (la couleur) de son infinitif", () => {
+	const oneFamily = (text: string) => new Set(families(text).map(([, family]) => family)).size;
+	assert.equal(oneFamily("Il faut manger manger mangeons."), 1);
+	// Quel que soit l'ordre : ici les deux « mangeons » se répondent aussi entre eux, sans passer par l'infinitif.
+	assert.equal(oneFamily("Nous mangeons le pain, nous mangeons la soupe, il faut manger."), 1);
+	assert.equal(oneFamily("Il faut manger le pain, nous mangeons la soupe, nous mangeons encore."), 1);
+	// Le pluriel d'un nom garde la famille de son singulier.
+	assert.equal(oneFamily("Une maison blanche. Trois maisons rouges. Une maison grise."), 1);
+});
+
+test("au milieu d'une série, l'infobulle d'une première personne du pluriel parle de l'occurrence la plus proche", () => {
+	const text = "Nous mangeons. Ombre lueur brume. Il faut manger. Sable cendre écume argile givre. Nous mangeons.";
+	assert.deepEqual(explanations(text), [
+		["mangeons", "« mangeons » revient 13 mots plus loin."],
+		["manger", "« manger » a la même racine que « mangeons » (6 mots plus haut)."],
+		["mangeons", "« mangeons » apparaît déjà 13 mots plus haut."],
+	]);
+});
+
+test("l'infobulle d'une première personne du pluriel nomme l'infinitif", () => {
+	assert.deepEqual(explanations("Nous mangeons le pain. Il faut manger le fromage."), [
+		["mangeons", "« mangeons » a la même racine que « manger » (5 mots plus loin)."],
+		["manger", "« manger » a la même racine que « mangeons » (5 mots plus haut)."],
+	]);
+});
+
+test("les formes d'un verbe irrégulier se répondent, même sans radical commun", () => {
+	assert.deepEqual(words("Il fait la vaisselle. Elle faisait le lit."), ["fait", "faisait"]);
+	assert.deepEqual(words("Nous irons demain. Vous allez au marché."), ["irons", "allez"]);
+	assert.deepEqual(words("Il revenait tard. Elle est revenue."), ["revenait", "revenue"]);
+	assert.deepEqual(words("Il fait la vaisselle. Elle faisait le lit.", { useStemming: false }), []);
+});
+
+test("un composé n'est pas rapproché du verbe simple", () => {
+	assert.deepEqual(words("Il venait le soir. Elle revenait le matin."), []);
+});
+
+test("toutes les formes d'un verbe irrégulier ont la famille de son infinitif, quel que soit l'ordre", () => {
+	const oneFamily = (text: string) => new Set(families(text).map(([, family]) => family)).size;
+	assert.equal(oneFamily("Elle ira au marché, nous allons au bal, ils vont au pré."), 1);
+	assert.equal(oneFamily("Il fait le pain, il fait la soupe, nous faisons le vin."), 1);
+	assert.deepEqual(new Set(families("Il fait le pain, il fait la soupe, nous faisons le vin.").map(([, family]) => family)), new Set(["faire"]));
+});
+
+test("un verbe irrégulier garde le lien que le stemmer faisait avec un nom de même racine", () => {
+	const text = "Elle connaissait la ville. Sa connaissance des rues surprenait.";
+	assert.deepEqual(words(text), ["connaissait", "connaissance"]);
+	// Le nom adopte la famille du verbe : même couleur pour les deux.
+	assert.equal(new Set(families(text).map(([, family]) => family)).size, 1);
+});
+
+test("l'infobulle de deux formes d'un verbe irrégulier nomme l'infinitif", () => {
+	assert.deepEqual(explanations("Nous irons demain. Vous allez au marché."), [
+		["irons", "« irons » et « allez » sont deux formes de « aller » (3 mots plus loin)."],
+		["allez", "« allez » et « irons » sont deux formes de « aller » (3 mots plus haut)."],
+	]);
+});
+
 test("une même forme l'emporte sur le simple rapprochement", () => {
 	const [first] = highlighted("Il regardait la mer. Elle regardait le ciel.");
 	assert.equal(first[1], 3);

@@ -13,7 +13,7 @@ Pour l'instant, Burr ne fait qu'une chose : la détection automatique des répé
 - **Une intensité selon la distance.** Trois nuances de fond : plus les deux occurrences sont proches, plus le surlignage est marqué.
 - **Au survol, ce qui ne va pas.** Passer la souris sur un passage surligné affiche une infobulle qui dit où se trouve l'autre occurrence : « *regardait* apparaît déjà 12 mots plus haut », « l'expression *tout de même* revient juste après », « *regarda* a la même racine que *regardait* (4 mots plus haut) ». Quand un mot revient plusieurs fois, l'infobulle parle de l'occurrence qui a fait pencher le surlignage, la plus proche.
 - **Mots isolés et expressions.** Burr repère aussi les suites de 2 à 4 mots (« tout de même », « il n'y avait pas »). Quand une expression revient, elle est surlignée d'un bloc plutôt que mot par mot.
-- **Formes d'un même mot.** Grâce à un stemmer [Snowball](https://snowballstem.org/) français, *regardait*, *regarda* et *regardant* se rapprochent. Ces rapprochements sont surlignés plus discrètement et sur une distance plus courte, car un stemmer se trompe parfois.
+- **Formes d'un même mot.** Grâce à un stemmer [Snowball](https://snowballstem.org/) français, *regardait*, *regarda* et *regardant* se rapprochent. Une table des verbes irréguliers (aller, faire, pouvoir, venir, prendre… et leurs composés) rapproche aussi *fait*, *faisons* et *ferai*, ou *irai* et *allons*, que le stemmer ne peut pas relier. Ces rapprochements sont surlignés plus discrètement et sur une distance plus courte, car un stemmer se trompe parfois.
 - **Le bruit est écarté.**
   - Les mots-outils (*le, de, et, que, dans, il…*) et les formes d'*être* et d'*avoir* ne comptent pas.
   - Les noms propres non plus : un mot qui prend une majuscule en milieu de phrase n'est jamais signalé, pour qu'un personnage qui revient ne soit pas une répétition.
@@ -83,7 +83,7 @@ src/
   text/                 normalisation, zones ignorées, découpage en mots
   detectors/            un module par détecteur, même interface (types.ts)
   editor/highlight.ts   extension CodeMirror 6 (ViewPlugin + Decoration.mark)
-  lang/                 tout ce qui dépend de la langue (fr/ : mots-outils, stemmer)
+  lang/                 tout ce qui dépend de la langue (fr/ : mots-outils, stemmer, verbes irréguliers)
 ```
 
 - Le texte est découpé **une seule fois** ; tous les détecteurs travaillent sur les mêmes mots.
@@ -92,7 +92,9 @@ src/
 
 ## Crédits
 
-Le stemmer français est un port TypeScript de l'algorithme [Snowball](https://snowballstem.org/algorithms/french/stemmer.html), vérifié mot à mot contre l'implémentation de référence (voir [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
+Le stemmer français est un port TypeScript de l'algorithme [Snowball](https://snowballstem.org/algorithms/french/stemmer.html), vérifié mot à mot contre l'implémentation de référence (voir [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)). Snowball ne connaît pas la désinence -ons (*mangeons* reste *mangeon*) : `Language.altStem` donne à ces formes une seconde racine (*mang*), en plus de l'ordinaire, pour que *manger* et *mangeons* se répondent sans que *maison* et *maisons* se perdent de vue. Limite connue : *mangions* (imparfait) n'est pas rapproché de *manger*, le stemmer ne le faisant que pour certains verbes et la règle ne pouvant pas distinguer *mangions* de noms comme *passions*.
+
+Les verbes irréguliers vivent dans [src/lang/fr/verbs.ts](src/lang/fr/verbs.ts) : une entrée par verbe, avec le radical de l'imparfait et du futur (les désinences sont communes) et les autres formes écrites à la main. `Language.lemma` rend l'infinitif d'une forme ; c'est aussi la famille (donc la couleur) de toutes ses formes. La table s'ajoute au stemmer sans le remplacer, pour que *connaissait* reste rapproché de *connaissance*. Les formes qui appartiennent à deux verbes (*vit* : voir ou vivre) ou qui sont d'abord un nom courant (*lit*, *bois*) n'y figurent pas ; leurs composés (*relit*) si.
 
 ## Licence
 
