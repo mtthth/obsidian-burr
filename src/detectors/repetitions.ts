@@ -1,8 +1,16 @@
 import { parseWordList } from "../settings.ts";
 import type { Token } from "../text/tokenize.ts";
-import type { DetectionInput, Detector, Highlight } from "./types.ts";
+import type { DetectionInput, Detector, Explanation, Highlight } from "./types.ts";
 
 export const REPETITION = "repetition";
+/** Un mot rare repris de loin : souligné d'une vague plutôt que surligné. */
+export const ECHO = "echo";
+
+/**
+ * Ce que l'infobulle dit d'un mot selon son degré d'usage. Un écho a un degré de 0 à 2 :
+ * `echoRarity` ne dépasse pas 3 (ECHO_RARITY_RANGE), et les mots courants n'en sont jamais.
+ */
+const RARITY_LABELS = ["très rare", "rare", "peu courant"];
 
 /** En dessous, un mot n'est jamais signalé (eau, mer, or, air passent déjà à trois lettres). */
 const MIN_WORD_LENGTH = 3;
@@ -18,10 +26,17 @@ function intensityFor(distance: number, window: number): Intensity {
 	return ratio <= 0.2 ? 3 : ratio <= 0.5 ? 2 : 1;
 }
 
-/** Où se trouve l'autre occurrence, en mots : « 5 mots plus haut », « juste après »… */
+/** Où se trouve l'autre occurrence, en mots : « 5 mots plus haut », « 2 960 mots plus loin », « juste après »… */
 function where(distance: number, before: boolean): string {
 	if (distance === 1) return before ? "juste avant" : "juste après";
-	return `${distance} mots plus ${before ? "haut" : "loin"}`;
+	// Espace fine insécable entre les milliers, sans dépendre de la langue du système.
+	const count = String(distance).replace(/\B(?=(\d{3})+$)/g, "\u202f");
+	return `${count} mots plus ${before ? "haut" : "loin"}`;
+}
+
+/** Une phrase d'infobulle dont le passage `place` (« 5 mots plus haut ») mène à l'autre occurrence. */
+function sentence(before: string, place: string, after: string): Explanation {
+	return { text: before + place + after, link: [before.length, before.length + place.length] };
 }
 
 /**
@@ -50,6 +65,9 @@ function properNames(tokens: readonly Token[], stopwords: ReadonlySet<string>): 
  *   atténué et limité à la moitié de la fenêtre, car le stemming se trompe.
  * - Expressions de 2 à `maxNgram` mots (« tout de même ») : la plus longue
  *   l'emporte sur les mots qu'elle contient.
+ * - Mots rares (« chatoyant ») repris de loin, jusqu'à `echoReach` mots : un
+ *   lecteur s'en souvient bien au-delà de la fenêtre. Catégorie à part (ECHO), sur
+ *   les seuls mots que rien d'autre ne surligne : les plages ne se chevauchent jamais.
  */
 function detect({ text, tokens, language, settings }: DetectionInput): Highlight[] {
 	const count = tokens.length;
@@ -100,23 +118,33 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 		phraseSize[index] = size;
 	};
 
-	// Les infobulles. Chaque plage rend une fonction qui écrit sa phrase à la demande.
+	// Les infobulles. Chaque plage rend une fonction qui écrit sa phrase à la demande ;
+	// la distance (« 5 mots plus haut ») y est le lien vers l'autre occurrence.
 	const textOf = (first: number, last: number) => text.slice(tokens[first].from, tokens[last].to);
-	const explainWord = (index: number, other: number, same: boolean) => (): string => {
+	const spanOf = (first: number, last: number) => ({ from: tokens[first].from, to: tokens[last].to });
+	const explainWord = (index: number, other: number, same: boolean) => (): Explanation => {
 		const before = other < index;
 		const place = where(Math.abs(index - other), before);
-		if (same) return `« ${textOf(index, index)} » ${before ? "apparaît déjà" : "revient"} ${place}.`;
+		if (same) return sentence(`« ${textOf(index, index)} » ${before ? "apparaît déjà" : "revient"} `, place, ".");
 		// Deux formes d'un verbe irrégulier n'ont pas de racine commune : on nomme l'infinitif.
 		const lemma = language.lemma?.(tokens[index].norm);
 		if (lemma !== undefined && lemma === language.lemma?.(tokens[other].norm)) {
-			return `« ${textOf(index, index)} » et « ${textOf(other, other)} » sont deux formes de « ${lemma} » (${place}).`;
+			return sentence(`« ${textOf(index, index)} » et « ${textOf(other, other)} » sont deux formes de « ${lemma} » (`, place, ").");
 		}
-		return `« ${textOf(index, index)} » a la même racine que « ${textOf(other, other)} » (${place}).`;
+		return sentence(`« ${textOf(index, index)} » a la même racine que « ${textOf(other, other)} » (`, place, ").");
 	};
-	const explainPhrase = (start: number, other: number, size: number) => (): string => {
+	const explainPhrase = (start: number, other: number, size: number) => (): Explanation => {
 		const before = other < start;
 		const place = where(Math.abs(start - other), before);
-		return `L'expression « ${textOf(start, start + size - 1)} » ${before ? "apparaît déjà" : "revient"} ${place}.`;
+		return sentence(`L'expression « ${textOf(start, start + size - 1)} » ${before ? "apparaît déjà" : "revient"} `, place, ".");
+	};
+	const explainEcho = (index: number, other: number, commonness: number) => (): Explanation => {
+		const before = other < index;
+		const place = where(Math.abs(index - other), before);
+		const word = `« ${textOf(index, index)} », mot ${RARITY_LABELS[commonness]},`;
+		if (tokens[index].norm === tokens[other].norm) return sentence(`${word} ${before ? "apparaît déjà" : "revient"} `, place, ".");
+		const form = `« ${textOf(other, other)} »`;
+		return sentence(before ? `${word} reprend ${form} ` : `${word} revient sous la forme ${form} `, place, ".");
 	};
 
 	// Famille d'un mot isolé : quand le stemming est actif, l'infinitif d'un verbe
@@ -231,7 +259,36 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 		}
 	}
 
-	// 4. Plages : une suite de mots couverts par des expressions devient une seule plage.
+	// 4. Mots rares repris de loin. Chaque famille rare est suivie dans tout le document ;
+	// deux emplois qui se suivent forment un écho s'ils sont à moins de `echoReach` mots.
+	// Un mot déjà surligné de près le reste : on ne souligne que les autres, et chacun
+	// explique l'emploi le plus proche (le premier à égalité).
+	const echoOther = new Int32Array(count).fill(-1);
+	const echoCommonness = new Uint8Array(count);
+	if (settings.echoes && language.commonness) {
+		const echoReach = settings.echoReach > 0 ? settings.echoReach : Infinity;
+		const lastOfFamily = new Map<string, number>();
+		const link = (index: number, other: number) => {
+			if (wordLevel[index] || phraseLevel[index]) return;
+			const current = echoOther[index];
+			if (current < 0 || Math.abs(other - index) < Math.abs(current - index)) echoOther[index] = other;
+		};
+		for (let i = 0; i < count; i++) {
+			if (kind[i] !== FULL) continue;
+			const commonness = language.commonness(tokens[i].norm);
+			if (commonness >= settings.echoRarity) continue;
+			echoCommonness[i] = commonness;
+			const family = wordFamily(i);
+			const previous = lastOfFamily.get(family);
+			if (previous !== undefined && i - previous <= echoReach) {
+				link(i, previous);
+				link(previous, i);
+			}
+			lastOfFamily.set(family, i);
+		}
+	}
+
+	// 5. Plages : une suite de mots couverts par des expressions devient une seule plage.
 	const highlights: Highlight[] = [];
 	for (let i = 0; i < count; ) {
 		if (phraseLevel[i]) {
@@ -250,6 +307,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 				category: REPETITION,
 				family: phraseKey[strongest],
 				intensity: level as Intensity,
+				target: spanOf(phraseOther[strongest], phraseOther[strongest] + phraseSize[strongest] - 1),
 				explain: explainPhrase(phraseStart[strongest], phraseOther[strongest], phraseSize[strongest]),
 			});
 			i = end;
@@ -261,7 +319,20 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 					category: REPETITION,
 					family: wordFamily(i),
 					intensity: wordLevel[i] as Intensity,
+					target: spanOf(wordOther[i], wordOther[i]),
 					explain: explainWord(i, wordOther[i], wordSame[i] === 1),
+				});
+			} else if (echoOther[i] >= 0) {
+				highlights.push({
+					from: tokens[i].from,
+					to: tokens[i].to,
+					category: ECHO,
+					// Même famille, donc même couleur, que les répétitions proches du même mot.
+					family: wordFamily(i),
+					// Plus le mot est rare, plus la vague est marquée.
+					intensity: (3 - echoCommonness[i]) as Intensity,
+					target: spanOf(echoOther[i], echoOther[i]),
+					explain: explainEcho(i, echoOther[i], echoCommonness[i]),
 				});
 			}
 			i++;

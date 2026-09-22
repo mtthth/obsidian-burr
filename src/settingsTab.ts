@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type BurrPlugin from "./main.ts";
-import { NGRAM_RANGE, WINDOW_RANGE } from "./settings.ts";
+import { ECHO_REACHES, NGRAM_RANGE, WINDOW_RANGE } from "./settings.ts";
 
 export class BurrSettingTab extends PluginSettingTab {
 	private plugin: BurrPlugin;
@@ -61,6 +61,44 @@ export class BurrSettingTab extends PluginSettingTab {
 					await save();
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName("Mots rares repris de loin")
+			.setDesc("Souligne d'une vague un mot rare (chatoyant, ineffable) qui revient bien au-delà de la fenêtre : un lecteur s'en souvient. Plus le mot est rare, plus la vague est marquée.")
+			.addToggle((toggle) =>
+				toggle.setValue(settings.echoes).onChange(async (value) => {
+					settings.echoes = value;
+					await save();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Mots jugés rares")
+			.setDesc("D'après leur fréquence dans un corpus de livres (base Lexique).")
+			.addDropdown((dropdown) => {
+				dropdown
+					.addOption("1", "Très rares seulement (chatoyant, diaphane)")
+					.addOption("2", "Rares (ineffable, glauque)")
+					.addOption("3", "Peu courants (crépuscule, cathédrale)")
+					.setValue(String(settings.echoRarity))
+					.onChange(async (value) => {
+						settings.echoRarity = Number(value);
+						await save();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("Portée des mots rares")
+			.setDesc("Distance maximale entre deux emplois d'un mot rare. Sur un manuscrit entier dans une seule note, « Tout le document » souligne beaucoup : les mots rares finissent tous par revenir.")
+			.addDropdown((dropdown) => {
+				for (const reach of ECHO_REACHES) {
+					dropdown.addOption(String(reach), reach > 0 ? `${reach.toLocaleString("fr-FR")} mots` : "Tout le document");
+				}
+				dropdown.setValue(String(settings.echoReach)).onChange(async (value) => {
+					settings.echoReach = Number(value);
+					await save();
+				});
+			});
 
 		new Setting(containerEl)
 			.setName("Ignorer les noms propres")

@@ -2,6 +2,15 @@ import type { Language } from "../lang/types.ts";
 import type { BurrSettings } from "../settings.ts";
 import type { Token } from "../text/tokenize.ts";
 
+/**
+ * La phrase d'une infobulle. `link` délimite dans `text` le passage (« 12 mots plus haut »)
+ * sur lequel on clique pour aller à l'autre occurrence.
+ */
+export interface Explanation {
+	text: string;
+	link?: [from: number, to: number];
+}
+
 /** Une plage du document à surligner, telle que la rend un détecteur. */
 export interface Highlight {
 	/** Positions dans le document. */
@@ -17,11 +26,13 @@ export interface Highlight {
 	family: string;
 	/** 1 (discret) à 3 (marqué). */
 	intensity: 1 | 2 | 3;
+	/** L'autre occurrence dont parle l'infobulle, où mène son lien. Positions dans le document analysé. */
+	target?: { from: number; to: number };
 	/**
 	 * Ce qui ne va pas, en une phrase : l'infobulle au survol. Écrit à la demande,
 	 * car un seul passage à la fois est survolé.
 	 */
-	explain(): string;
+	explain(): Explanation;
 }
 
 export interface DetectionInput {

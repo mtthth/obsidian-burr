@@ -17,7 +17,7 @@ export function families(text: string, overrides: Partial<BurrSettings> = {}): A
 /** Les passages surlignés avec ce que dit leur infobulle. */
 export function explanations(text: string, overrides: Partial<BurrSettings> = {}): Array<[string, string]> {
 	const settings: BurrSettings = { ...DEFAULT_SETTINGS, ...overrides };
-	return analyze(text, settings).map((h) => [text.slice(h.from, h.to), h.explain()]);
+	return analyze(text, settings).map((h) => [text.slice(h.from, h.to), h.explain().text]);
 }
 
 /** Comme `highlighted`, sans les intensités. */

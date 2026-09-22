@@ -40,3 +40,22 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
+
+## Lexique 3.83 : fréquence des mots français
+
+`src/lang/fr/frequencies.ts` est dérivé de [Lexique 3.83](http://www.lexique.org),
+base lexicale du français de Boris New, Christophe Pallier et al. Le fichier est généré par
+`scripts/frequencies.ts` à partir de `Lexique383.tsv` : n'y restent que les racines Snowball
+des mots dont le lemme revient au moins 3 fois par million de mots dans le corpus de livres
+de Lexique (colonne `freqlemlivres`), classées en trois degrés d'usage.
+
+Lexique est distribué sous licence Creative Commons Attribution - Partage dans les mêmes
+conditions 4.0 International (CC BY-SA 4.0) :
+https://creativecommons.org/licenses/by-sa/4.0/
+
+`src/lang/fr/frequencies.ts` est placé sous la même licence. Le reste du plugin demeure
+sous licence MIT.
+
+Référence : New, B., Pallier, C., Brysbaert, M., & Ferrand, L. (2004). Lexique 2 : A new
+French lexical database. *Behavior Research Methods, Instruments, & Computers*, 36(3),
+516-524.

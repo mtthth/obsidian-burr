@@ -1,3 +1,6 @@
+/** Degré d'usage d'un mot dans la langue : 0 très rare (ou inconnu), 1 rare, 2 peu courant, 3 courant. */
+export type Commonness = 0 | 1 | 2 | 3;
+
 /**
  * Ce qui dépend de la langue du document. Le reste du plugin (tokenizer,
  * détecteurs, éditeur) n'en sait rien : ajouter une langue, c'est écrire un
@@ -26,6 +29,12 @@ export interface Language {
 	 * rester rapproché de « maison ». Rend `undefined` s'il n'y en a pas.
 	 */
 	altStem?(word: string): string | undefined;
+	/**
+	 * Degré d'usage d'un mot (minuscules NFC), celui de sa famille : « chatoyaient »
+	 * est aussi rare que « chatoyer ». Un mot rare se remarque : repris de loin, il
+	 * se lit encore comme une répétition. Sans cette fonction, rien n'est jugé rare.
+	 */
+	commonness?(word: string): Commonness;
 	/** Motifs (drapeau `g`) des répliques de dialogue, ignorées si l'option est activée. */
 	readonly dialogue: readonly RegExp[];
 	/**

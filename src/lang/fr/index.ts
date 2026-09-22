@@ -1,4 +1,5 @@
 import type { Language } from "../types.ts";
+import { commonnessOfStem, unligate } from "./rarity.ts";
 import { stemFrench } from "./stemmer.ts";
 import { FRENCH_STOPWORDS } from "./stopwords.ts";
 import { IRREGULAR_VERB_FORMS } from "./verbs.ts";
@@ -41,6 +42,8 @@ export const french: Language = {
 	stem,
 	lemma: (word) => IRREGULAR_VERB_FORMS.get(word),
 	altStem,
+	// La fréquence d'une famille dans les livres, d'après Lexique (voir frequencies.ts).
+	commonness: (word) => commonnessOfStem(stem(unligate(word))),
 	dialogue: [
 		// Réplique introduite par un tiret cadratin, demi-cadratin ou « -- » : toute la ligne.
 		/^[ \t]*(?:[—–]|--)[^\n]*/gm,

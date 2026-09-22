@@ -1,5 +1,5 @@
 /*
- * Répétitions. Chaque famille (un même mot répété, une même expression) a sa couleur ;
+ * Répétitions proches. Chaque famille (un même mot répété, une même expression) a sa couleur ;
  * l'intensité du fond (1 à 3) dit la proximité des occurrences, le filet dessous
  * garde la teinte lisible même quand le fond est pâle.
  *
@@ -27,6 +27,34 @@
 	background-color: rgba(var(--burr-rgb), 0.46);
 }
 
+/*
+ * Mots rares repris de loin : une vague dessous, sans fond, dans la couleur de la famille.
+ * L'intensité (1 à 3) dit la rareté du mot, pas la distance. Ces règles précèdent
+ * les couleurs, qui doivent l'emporter sur la teinte par défaut.
+ */
+.burr-echo {
+	--burr-rgb: 236, 117, 0;
+	text-decoration-line: underline;
+	text-decoration-style: wavy;
+	text-decoration-skip-ink: none;
+	text-underline-offset: 3px;
+}
+
+.burr-echo-1 {
+	text-decoration-color: rgba(var(--burr-rgb), 0.55);
+	text-decoration-thickness: 1px;
+}
+
+.burr-echo-2 {
+	text-decoration-color: rgba(var(--burr-rgb), 0.8);
+	text-decoration-thickness: 1.5px;
+}
+
+.burr-echo-3 {
+	text-decoration-color: rgba(var(--burr-rgb), 1);
+	text-decoration-thickness: 2px;
+}
+
 .burr-color-0 { --burr-rgb: var(--color-orange-rgb, 236, 117, 0); }
 .burr-color-1 { --burr-rgb: var(--color-blue-rgb, 8, 109, 221); }
 .burr-color-2 { --burr-rgb: var(--color-green-rgb, 8, 185, 78); }
@@ -52,7 +80,6 @@
 	border-radius: var(--radius-s, 4px);
 	background-color: var(--background-secondary);
 	box-shadow: var(--shadow-s);
-	pointer-events: none;
 }
 
 .burr-tooltip {
@@ -62,4 +89,16 @@
 	font-family: var(--font-interface);
 	font-size: var(--font-ui-smaller, 12px);
 	line-height: 1.4;
+}
+
+/* La distance (« 12 mots plus haut ») : un clic mène à l'autre occurrence. */
+.burr-jump {
+	color: var(--text-accent);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	cursor: pointer;
+}
+
+.burr-jump:hover {
+	color: var(--text-accent-hover);
 }
