@@ -1,5 +1,6 @@
 import type { EditorView } from "@codemirror/view";
-import { MarkdownView, Notice, Plugin, TFile, editorInfoField } from "obsidian";
+import { MarkdownView, Menu, Notice, Plugin, TFile, editorInfoField } from "obsidian";
+import type { MenuItem } from "obsidian";
 import { burrHighlighter, refreshHighlights } from "./editor/highlight.ts";
 import { addIgnoreTag, exclusionOf, removeIgnoreTag } from "./scope.ts";
 import type { Exclusion } from "./scope.ts";
@@ -31,17 +32,20 @@ export default class BurrPlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on("editor-menu", (menu, _editor, info) => {
 				const file = info.file;
-				if (!file) return;
-				const exclusion = this.exclusion(file);
-				// Écartée par un dossier, une balise n'y changerait rien.
-				if (exclusion === "folder") return;
-				const ignored = exclusion === "tag";
-				menu.addItem((item) =>
-					item
-						.setTitle(ignored ? "Burr : réactiver pour cette note" : "Burr : ignorer cette note")
-						.setIcon(ignored ? "eye" : "eye-off")
-						.onClick(() => this.setNoteIgnored(file, !ignored)),
-				);
+				if (file) {
+					const exclusion = this.exclusion(file);
+					// Écartée par un dossier, une balise n'y changerait rien.
+					if (exclusion !== "folder") {
+						const ignored = exclusion === "tag";
+						menu.addItem((item) =>
+							item
+								.setTitle(ignored ? "Burr : réactiver pour cette note" : "Burr : ignorer cette note")
+								.setIcon(ignored ? "eye" : "eye-off")
+								.onClick(() => this.setNoteIgnored(file, !ignored)),
+						);
+					}
+				}
+				this.addOptionsItem(menu);
 			}),
 		);
 
@@ -103,6 +107,54 @@ export default class BurrPlugin extends Plugin {
 			console.error("Burr : YAML illisible", error);
 			new Notice("Burr : le YAML de cette note est illisible, la balise n'a pas été modifiée.");
 		}
+	}
+
+	/** Remplit le sous-menu « Options de Burr » : afficher ou non chaque signal, lien vers les réglages. */
+	private fillOptionsMenu(menu: Menu): Menu {
+		return menu
+			.addItem((item) =>
+				item
+					.setTitle("Répétitions")
+					.setChecked(this.settings.enabled)
+					.onClick(async () => {
+						this.settings.enabled = !this.settings.enabled;
+						await this.saveSettings();
+					}),
+			)
+			.addItem((item) =>
+				item
+					.setTitle("Mots rares repris de loin")
+					.setChecked(this.settings.echoes)
+					.onClick(async () => {
+						this.settings.echoes = !this.settings.echoes;
+						await this.saveSettings();
+					}),
+			)
+			.addSeparator()
+			.addItem((item) =>
+				item
+					.setTitle("Options du plugin…")
+					.setIcon("settings")
+					.onClick(() => this.openPluginSettings()),
+			);
+	}
+
+	/** Ajoute « Options de Burr » au menu : un sous-menu si l'API (non publique) le permet, sinon un second menu au clic. */
+	private addOptionsItem(menu: Menu) {
+		menu.addItem((item) => {
+			item.setTitle("Options de Burr").setIcon("sliders-horizontal");
+			// `MenuItem.setSubmenu()` n'est pas dans l'API publique, mais c'est l'usage établi pour les sous-menus.
+			const submenu = (item as MenuItem & { setSubmenu?(): Menu }).setSubmenu?.();
+			if (submenu) this.fillOptionsMenu(submenu);
+			else item.onClick((evt) => this.fillOptionsMenu(new Menu()).showAtMouseEvent(evt as MouseEvent));
+		});
+	}
+
+	/** Ouvre l'onglet de réglages de Burr. `app.setting` n'est pas non plus dans l'API publique. */
+	private openPluginSettings() {
+		const setting = (this.app as unknown as { setting?: { open(): void; openTabById(id: string): void } }).setting;
+		setting?.open();
+		setting?.openTabById(this.manifest.id);
 	}
 
 	/** Relance l'analyse dans les éditeurs ouverts : tous, ou ceux d'une seule note. */

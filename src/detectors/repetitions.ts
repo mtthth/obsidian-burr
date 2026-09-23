@@ -177,7 +177,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 		if (kind[i] !== FULL) continue;
 		const word = tokens[i].norm;
 		const previous = lastSeen.get(word);
-		if (previous !== undefined && i - previous <= reach) {
+		if (settings.enabled && previous !== undefined && i - previous <= reach) {
 			const level = intensityFor(i - previous, reach);
 			raiseWord(i, level, previous, true);
 			raiseWord(previous, level, i, true);
@@ -206,7 +206,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 				}
 				forms.set(word, i);
 			}
-			if (nearest >= 0 && i - nearest <= reach / 2) {
+			if (settings.enabled && nearest >= 0 && i - nearest <= reach / 2) {
 				const level = intensityFor(i - nearest, reach) === 3 ? 2 : 1;
 				raiseWord(i, level, nearest, false);
 				raiseWord(nearest, level, i, false);
@@ -246,7 +246,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 			if (previous !== undefined) {
 				const distance = i - previous;
 				if (distance < size) continue; // les deux occurrences se chevauchent
-				if (distance <= reach) {
+				if (settings.enabled && distance <= reach) {
 					const boost = size >= 3 ? 1 : 0;
 					const level = Math.min(3, intensityFor(distance, reach) + boost);
 					for (let k = 0; k < size; k++) {

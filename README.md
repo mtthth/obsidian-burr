@@ -53,7 +53,7 @@ La liste des mots courants, qui sert à juger de la rareté, pèse l'essentiel d
 
 | Réglage | Effet |
 | --- | --- |
-| Surligner les répétitions | Active ou désactive le surlignage. |
+| Surligner les répétitions | Active ou désactive le surlignage des répétitions par proximité (les mots rares repris de loin ont leur propre réglage, juste en dessous). |
 | Fenêtre de recherche | Distance maximale, en mots, entre deux occurrences (20 à 200). |
 | Longueur maximale des expressions | De 1 (mots isolés seulement) à 4 mots. |
 | Rapprocher les formes d'un même mot | Active le stemmer (*regardait* / *regarda*). |
@@ -68,8 +68,9 @@ La liste des mots courants, qui sert à juger de la rareté, pèse l'essentiel d
 
 ## Commande
 
-- **Afficher ou masquer les répétitions** : bascule le surlignage.
+- **Afficher ou masquer les répétitions** : bascule le surlignage des répétitions par proximité.
 - **Burr : ignorer cette note** / **Burr : réactiver pour cette note** : dans le menu du clic droit, pose ou retire la balise `burr-ignorer` dans le YAML de la note.
+- **Options de Burr** : dans le même menu, un sous-menu bascule indépendamment le surlignage des répétitions et celui des mots rares repris de loin, et propose un lien direct vers les réglages du plugin.
 
 ## Langue
 

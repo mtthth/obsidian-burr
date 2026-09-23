@@ -182,7 +182,7 @@ export function burrHighlighter(getSettings: () => BurrSettings, isExcluded: (vi
 			private run() {
 				this.timer = null;
 				const settings = getSettings();
-				const decorations = settings.enabled && !isExcluded(this.view)
+				const decorations = (settings.enabled || settings.echoes) && !isExcluded(this.view)
 					? buildDecorations(this.view.state.doc.toString(), settings, this.colors)
 					: Decoration.none;
 				this.view.dispatch({ effects: setHighlights.of(decorations) });
