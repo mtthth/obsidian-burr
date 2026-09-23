@@ -1,11 +1,22 @@
 # Notices de tiers
 
+Le plugin est sous licence MIT, sauf les fichiers cités ici. Les sources tierces sont
+copiées dans [data/](data/), chacune avec sa licence ; [data/README.md](data/README.md)
+dit d'où vient chaque fichier.
+
 ## Snowball : stemmer français
 
 `src/lang/fr/stemmer.ts` est un port en TypeScript de l'algorithme de racinisation
-français du projet [Snowball](https://snowballstem.org/algorithms/french/stemmer.html)
-(définition `french.sbl`). Le port a été vérifié mot à mot contre l'implémentation de
-référence, sur un dictionnaire de 331 778 formes, sans aucun écart.
+français du projet [Snowball](https://snowballstem.org/algorithms/french/stemmer.html),
+dont la définition est copiée dans `data/snowball/french.sbl`. `npm test` le compare au
+vocabulaire de test officiel de Snowball (`data/snowball-data/french/`, 21 653 mots) :
+aucun écart. Au moment du portage, il avait aussi été comparé à l'implémentation de
+référence (paquet Python snowballstemmer 3.1.1) sur 331 778 formes, sans aucun écart ;
+cette vérification-là ne se refait pas depuis le dépôt.
+
+Le vocabulaire de test mêle la liste d'origine de Snowball et des listes de mots tirées de
+Wikipédia en français (CC BY-SA 3.0) : voir `data/snowball-data/french/COPYING`. Il ne
+sert qu'aux tests et n'entre pas dans le plugin.
 
 Le projet Snowball est distribué sous licence BSD à trois clauses :
 
@@ -49,12 +60,15 @@ base lexicale du français de Boris New, Christophe Pallier et al. Le fichier es
 des mots dont le lemme revient au moins 3 fois par million de mots dans le corpus de livres
 de Lexique (colonne `freqlemlivres`), classées en trois degrés d'usage.
 
+`data/lexique/Lexique383.tsv.gz` est une copie de `Lexique383.tsv`, au contenu inchangé,
+seulement compressée ; le texte de la licence est dans `data/lexique/LICENSE.txt`.
+
 Lexique est distribué sous licence Creative Commons Attribution - Partage dans les mêmes
 conditions 4.0 International (CC BY-SA 4.0) :
 https://creativecommons.org/licenses/by-sa/4.0/
 
-`src/lang/fr/frequencies.ts` est placé sous la même licence. Le reste du plugin demeure
-sous licence MIT.
+`src/lang/fr/frequencies.ts` et `data/lexique/` sont placés sous la même licence. Le reste
+du plugin demeure sous licence MIT.
 
 Référence : New, B., Pallier, C., Brysbaert, M., & Ferrand, L. (2004). Lexique 2 : A new
 French lexical database. *Behavior Research Methods, Instruments, & Computers*, 36(3),

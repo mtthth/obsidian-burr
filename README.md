@@ -100,11 +100,13 @@ Sous Windows, [deploy.ps1](deploy.ps1) compile le plugin et le copie dans un vau
 
 Le chemin est mémorisé dans `deploy.local.json` (ignoré par git) : les fois suivantes, `.\deploy.ps1` suffit. Recharger Obsidian (Ctrl+R) ou réactiver le plugin pour voir la nouvelle version.
 
-La liste des mots courants, [src/lang/fr/frequencies.ts](src/lang/fr/frequencies.ts), est générée à partir de Lexique 3.83. Pour la refaire (seuils modifiés, stemmer changé), téléchargez [Lexique383.tsv](http://www.lexique.org/databases/Lexique383/Lexique383.tsv) (26 Mo, à garder hors du dépôt), puis :
+La liste des mots courants, [src/lang/fr/frequencies.ts](src/lang/fr/frequencies.ts), est générée à partir de Lexique 3.83, dont une copie est dans le dépôt. Pour la refaire (seuils modifiés, stemmer changé) :
 
 ```bash
-node scripts/frequencies.ts chemin/vers/Lexique383.tsv
+npm run frequencies
 ```
+
+Le dossier [data/](data/) contient les sources tierces : Lexique 3.83, et la définition du stemmer Snowball avec son vocabulaire de test officiel, que `npm test` vérifie en entier. [data/README.md](data/README.md) dit d'où vient chaque fichier et comment le stemmer a été porté. Ces fichiers ne sont pas sous licence MIT : Lexique est sous CC BY-SA 4.0, Snowball sous BSD (voir [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
 
 ### Architecture
 
@@ -121,6 +123,7 @@ src/
   lang/                 tout ce qui dépend de la langue (fr/ : mots-outils, stemmer, verbes irréguliers,
                         fréquence des mots)
 scripts/frequencies.ts  génère la liste des mots courants à partir de Lexique
+data/                   sources tierces : Lexique 3.83, définition et vocabulaire de test de Snowball
 ```
 
 - Le texte est découpé **une seule fois** ; tous les détecteurs travaillent sur les mêmes mots.
@@ -129,7 +132,7 @@ scripts/frequencies.ts  génère la liste des mots courants à partir de Lexique
 
 ## Crédits
 
-Le stemmer français est un port TypeScript de l'algorithme [Snowball](https://snowballstem.org/algorithms/french/stemmer.html), vérifié mot à mot contre l'implémentation de référence (voir [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)). Snowball ne connaît pas la désinence -ons (*mangeons* reste *mangeon*) : `Language.altStem` donne à ces formes une seconde racine (*mang*), en plus de l'ordinaire, pour que *manger* et *mangeons* se répondent sans que *maison* et *maisons* se perdent de vue. Limite connue : *mangions* (imparfait) n'est pas rapproché de *manger*, le stemmer ne le faisant que pour certains verbes et la règle ne pouvant pas distinguer *mangions* de noms comme *passions*.
+Le stemmer français est un port TypeScript de l'algorithme [Snowball](https://snowballstem.org/algorithms/french/stemmer.html), vérifié sur tout le vocabulaire de test officiel de Snowball (voir [data/README.md](data/README.md)). Snowball ne connaît pas la désinence -ons (*mangeons* reste *mangeon*) : `Language.altStem` donne à ces formes une seconde racine (*mang*), en plus de l'ordinaire, pour que *manger* et *mangeons* se répondent sans que *maison* et *maisons* se perdent de vue. Limite connue : *mangions* (imparfait) n'est pas rapproché de *manger*, le stemmer ne le faisant que pour certains verbes et la règle ne pouvant pas distinguer *mangions* de noms comme *passions*.
 
 Les verbes irréguliers vivent dans [src/lang/fr/verbs.ts](src/lang/fr/verbs.ts) : une entrée par verbe, avec le radical de l'imparfait et du futur (les désinences sont communes) et les autres formes écrites à la main. `Language.lemma` rend l'infinitif d'une forme ; c'est aussi la famille (donc la couleur) de toutes ses formes. La table s'ajoute au stemmer sans le remplacer, pour que *connaissait* reste rapproché de *connaissance*. Les formes qui appartiennent à deux verbes (*vit* : voir ou vivre) ou qui sont d'abord un nom courant (*lit*, *bois*) n'y figurent pas ; leurs composés (*relit*) si.
 
@@ -137,4 +140,4 @@ La rareté des mots vient de [Lexique 3.83](http://www.lexique.org) (Boris New, 
 
 ## Licence
 
-[MIT](LICENSE), sauf [src/lang/fr/frequencies.ts](src/lang/fr/frequencies.ts), dérivé de Lexique et placé comme lui sous licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Voir [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE), sauf [src/lang/fr/frequencies.ts](src/lang/fr/frequencies.ts), dérivé de Lexique et placé comme lui sous licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), et les copies de sources tierces du dossier [data/](data/), qui gardent chacune leur licence. Voir [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -6,7 +6,8 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"test": "node --test test/*.test.ts"
+		"test": "node --test test/*.test.ts",
+		"frequencies": "node scripts/frequencies.ts"
 	},
 	"keywords": [],
 	"author": "Matthieu Thomas (cidrolin)",

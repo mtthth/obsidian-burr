@@ -1,0 +1,2 @@
+# Copies conformes des sources tierces : pas de conversion des fins de ligne.
+data/** -text

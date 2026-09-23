@@ -1,10 +1,12 @@
 // Stemmer Snowball pour le français, porté en TypeScript depuis la définition
-// officielle : https://snowballstem.org/algorithms/french/stemmer.html
+// officielle, dont data/snowball/french.sbl est une copie :
+// https://snowballstem.org/algorithms/french/stemmer.html
 // (Snowball, licence BSD 3-clauses, Martin Porter et Richard Boulton.)
 //
 // Écart avec l'original : la routine « elisions » (l'homme -> homme) est omise,
-// car le tokenizer coupe déjà les mots à l'apostrophe. Le reste est fidèle, et
-// vérifié mot à mot contre l'implémentation de référence.
+// car le tokenizer coupe déjà les mots à l'apostrophe. Le reste est fidèle :
+// test/stemmer.test.ts le vérifie sur tout le vocabulaire de test officiel de
+// Snowball (data/snowball-data/french/).
 
 /** Une table « among » de Snowball : suffixe -> numéro d'action. */
 type Among = ReadonlyArray<readonly [string, number]>;

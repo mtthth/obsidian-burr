@@ -1,10 +1,11 @@
 /**
  * Régénère src/lang/fr/frequencies.ts à partir de Lexique 3.83 :
  *
- *   node scripts/frequencies.ts chemin/vers/Lexique383.tsv
+ *   npm run frequencies                                   (copie du dépôt, data/lexique/)
+ *   node scripts/frequencies.ts chemin/vers/Lexique383.tsv   (autre copie, .tsv ou .tsv.gz)
  *
  * Lexique (Boris New et Christophe Pallier, http://www.lexique.org) est distribué sous
- * licence CC BY-SA 4.0 : http://www.lexique.org/databases/Lexique383/Lexique383.tsv
+ * licence CC BY-SA 4.0 ; data/README.md dit d'où vient la copie du dépôt.
  *
  * Chaque forme de Lexique donne sa racine Snowball, avec la fréquence de son lemme dans
  * un corpus de livres (colonne freqlemlivres, en emplois par million de mots). Une
@@ -13,20 +14,18 @@
  * comme le fait le tokenizer, et chaque morceau reçoit la fréquence de l'entrée.
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 import { stemFrench } from "../src/lang/fr/stemmer.ts";
 
 /** Seuils des degrés d'usage 1, 2 et 3 : en dessous du premier, un mot est très rare. */
 const THRESHOLDS = [3, 10, 30] as const;
 const OUTPUT = new URL("../src/lang/fr/frequencies.ts", import.meta.url);
+const LEXIQUE = new URL("../data/lexique/Lexique383.tsv.gz", import.meta.url);
 const LINE_WIDTH = 100;
 
-const source = process.argv[2];
-if (!source) {
-	console.error("Usage : node scripts/frequencies.ts chemin/vers/Lexique383.tsv");
-	process.exit(1);
-}
-
-const lines = readFileSync(source, "utf8").split(/\r?\n/);
+const source = process.argv[2] ?? LEXIQUE;
+const raw = readFileSync(source);
+const lines = (String(source).endsWith(".gz") ? gunzipSync(raw) : raw).toString("utf8").split(/\r?\n/);
 const header = lines[0].split("\t");
 const ORTHO = header.indexOf("ortho");
 const FREQUENCY = header.indexOf("freqlemlivres");
