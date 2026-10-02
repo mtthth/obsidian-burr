@@ -1,6 +1,7 @@
 import type { Language } from "../lang/types.ts";
 import type { BurrSettings } from "../settings.ts";
 import type { Token } from "../text/tokenize.ts";
+import type { Lexicon } from "../weak/lexicon.ts";
 
 /**
  * La phrase d'une infobulle. `link` délimite dans `text` le passage (« 12 mots plus haut »)
@@ -26,6 +27,8 @@ export interface Highlight {
 	family: string;
 	/** 1 (discret) à 3 (marqué). */
 	intensity: 1 | 2 | 3;
+	/** Couleur imposée (0 à PALETTE_SIZE - 1), quand la famille a toujours la même ; sinon elle est attribuée. */
+	color?: number;
 	/** L'autre occurrence dont parle l'infobulle, où mène son lien. Positions dans le document analysé. */
 	target?: { from: number; to: number };
 	/**
@@ -41,6 +44,8 @@ export interface DetectionInput {
 	tokens: readonly Token[];
 	language: Language;
 	settings: BurrSettings;
+	/** Les mots faibles de l'auteur (sa note), ou ceux de la langue. */
+	lexicon: Lexicon;
 }
 
 /**

@@ -1,5 +1,5 @@
 import type { EditorView } from "@codemirror/view";
-import { MarkdownView, Menu, Notice, Plugin, TFile, editorInfoField } from "obsidian";
+import { MarkdownView, Menu, Notice, Plugin, TFile, editorInfoField, normalizePath } from "obsidian";
 import type { MenuItem } from "obsidian";
 import { burrHighlighter, refreshHighlights } from "./editor/highlight.ts";
 import { addIgnoreTag, exclusionOf, removeIgnoreTag } from "./scope.ts";
@@ -7,6 +7,9 @@ import type { Exclusion } from "./scope.ts";
 import { DEFAULT_SETTINGS, sanitizeSettings } from "./settings.ts";
 import type { BurrSettings } from "./settings.ts";
 import { BurrSettingTab } from "./settingsTab.ts";
+import { resolveLanguage } from "./lang/index.ts";
+import { defaultLexicon, parseLexicon } from "./weak/lexicon.ts";
+import type { Lexicon } from "./weak/lexicon.ts";
 
 export default class BurrPlugin extends Plugin {
 	settings: BurrSettings = { ...DEFAULT_SETTINGS };
@@ -14,10 +17,13 @@ export default class BurrPlugin extends Plugin {
 	/** Ce que les éditeurs ont vu de chaque note, pour ne relancer l'analyse que si cela change. */
 	private seen = new Map<string, Exclusion | null>();
 
+	/** Les mots faibles lus dans la note de l'auteur ; `undefined` tant qu'elle n'existe pas (ceux de la langue s'appliquent). */
+	private lexicon: Lexicon | undefined;
+
 	async onload() {
 		this.settings = sanitizeSettings(await this.loadData());
 
-		this.registerEditorExtension(burrHighlighter(() => this.settings, (view) => this.isExcluded(view)));
+		this.registerEditorExtension(burrHighlighter(() => this.settings, (view) => this.isExcluded(view), () => this.lexicon));
 
 		this.addCommand({
 			id: "toggle-repetitions",
@@ -28,6 +34,33 @@ export default class BurrPlugin extends Plugin {
 				new Notice(this.settings.enabled ? "Répétitions surlignées" : "Répétitions masquées");
 			},
 		});
+
+		this.addCommand({
+			id: "toggle-weak-words",
+			name: "Afficher ou masquer les mots faibles",
+			callback: async () => {
+				this.settings.weakWords = !this.settings.weakWords;
+				await this.saveSettings();
+				new Notice(this.settings.weakWords ? "Mots faibles surlignés" : "Mots faibles masqués");
+			},
+		});
+
+		this.addCommand({
+			id: "open-weak-words-note",
+			name: "Ouvrir la note des mots faibles (la créer si besoin)",
+			callback: () => this.openWeakWordsNote(),
+		});
+
+		// La note des mots faibles est relue à chaque modification, et à son apparition ou disparition.
+		const onNoteChange = (file: { path: string }, oldPath?: string) => {
+			const path = normalizePath(this.settings.weakNote);
+			if (file.path === path || oldPath === path) void this.loadLexicon();
+		};
+		this.registerEvent(this.app.vault.on("modify", (file) => onNoteChange(file)));
+		this.registerEvent(this.app.vault.on("create", (file) => onNoteChange(file)));
+		this.registerEvent(this.app.vault.on("delete", (file) => onNoteChange(file)));
+		this.registerEvent(this.app.vault.on("rename", (file, oldPath) => onNoteChange(file, oldPath)));
+		this.app.workspace.onLayoutReady(() => void this.loadLexicon());
 
 		this.registerEvent(
 			this.app.workspace.on("editor-menu", (menu, _editor, info) => {
@@ -80,6 +113,43 @@ export default class BurrPlugin extends Plugin {
 		this.refreshEditors();
 	}
 
+	/** Les mots faibles en vigueur : ceux de la note, à défaut ceux de la langue. */
+	currentLexicon(): Lexicon {
+		return this.lexicon ?? defaultLexicon(resolveLanguage({ text: "" }));
+	}
+
+	/** Relit la note des mots faibles (absente : on revient aux mots de la langue) et relance l'analyse. */
+	async loadLexicon() {
+		const file = this.app.vault.getAbstractFileByPath(normalizePath(this.settings.weakNote));
+		try {
+			this.lexicon = file instanceof TFile ? parseLexicon(await this.app.vault.cachedRead(file)) : undefined;
+		} catch (error) {
+			console.error("Burr : note des mots faibles illisible", error);
+			this.lexicon = undefined;
+		}
+		this.refreshEditors();
+	}
+
+	/** Ouvre la note des mots faibles ; si elle n'existe pas, la crée avec les mots de la langue, à éditer. */
+	async openWeakWordsNote() {
+		const path = normalizePath(this.settings.weakNote);
+		let file = this.app.vault.getAbstractFileByPath(path);
+		if (!(file instanceof TFile)) {
+			const template = resolveLanguage({ text: "" }).weak?.template;
+			if (template === undefined) return;
+			const folder = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
+			try {
+				if (folder && !this.app.vault.getAbstractFileByPath(folder)) await this.app.vault.createFolder(folder);
+				file = await this.app.vault.create(path, template);
+			} catch (error) {
+				console.error("Burr : création de la note des mots faibles impossible", error);
+				new Notice(`Burr : impossible de créer « ${path} ».`);
+				return;
+			}
+		}
+		if (file instanceof TFile) await this.app.workspace.getLeaf(false).openFile(file);
+	}
+
 	/** Pourquoi cette note n'est pas analysée, ou null si elle l'est. */
 	private exclusion(file: TFile): Exclusion | null {
 		const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
@@ -127,6 +197,15 @@ export default class BurrPlugin extends Plugin {
 					.setChecked(this.settings.echoes)
 					.onClick(async () => {
 						this.settings.echoes = !this.settings.echoes;
+						await this.saveSettings();
+					}),
+			)
+			.addItem((item) =>
+				item
+					.setTitle("Mots faibles")
+					.setChecked(this.settings.weakWords)
+					.onClick(async () => {
+						this.settings.weakWords = !this.settings.weakWords;
 						await this.saveSettings();
 					}),
 			)

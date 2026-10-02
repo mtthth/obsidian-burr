@@ -7,6 +7,7 @@ import { PALETTE_SIZE, assignColors } from "../colors.ts";
 import type { ColorMemory } from "../colors.ts";
 import type { Explanation, Highlight } from "../detectors/types.ts";
 import type { BurrSettings } from "../settings.ts";
+import type { Lexicon } from "../weak/lexicon.ts";
 
 /** Attente après la dernière frappe avant de relancer l'analyse. */
 const DEBOUNCE_MS = 250;
@@ -66,8 +67,8 @@ const highlightField = StateField.define<Highlights>({
 	provide: (field) => EditorView.decorations.from(field, (value) => value.decorations),
 });
 
-function buildDecorations(text: string, settings: BurrSettings, memory: ColorMemory): DecorationSet {
-	const highlights = analyze(text, settings);
+function buildDecorations(text: string, settings: BurrSettings, memory: ColorMemory, lexicon?: Lexicon): DecorationSet {
+	const highlights = analyze(text, settings, lexicon);
 	const colors = assignColors(highlights, memory);
 	const ranges = highlights.map((h, i) =>
 		// La décoration porte aussi l'explication et sa cible, que l'infobulle retrouve par sa position.
@@ -150,7 +151,11 @@ const explanation = hoverTooltip(
  * Surligne les répétitions du document, en mode source comme en aperçu en direct.
  * `isExcluded` dit si la note de cet éditeur est laissée de côté (dossier, balise du YAML).
  */
-export function burrHighlighter(getSettings: () => BurrSettings, isExcluded: (view: EditorView) => boolean): Extension {
+export function burrHighlighter(
+	getSettings: () => BurrSettings,
+	isExcluded: (view: EditorView) => boolean,
+	getLexicon: () => Lexicon | undefined,
+): Extension {
 	const scheduler = ViewPlugin.fromClass(
 		class {
 			private view: EditorView;
@@ -187,8 +192,8 @@ export function burrHighlighter(getSettings: () => BurrSettings, isExcluded: (vi
 			private run() {
 				this.timer = null;
 				const settings = getSettings();
-				const decorations = (settings.enabled || settings.echoes) && !isExcluded(this.view)
-					? buildDecorations(this.view.state.doc.toString(), settings, this.colors)
+				const decorations = (settings.enabled || settings.echoes || settings.weakWords) && !isExcluded(this.view)
+					? buildDecorations(this.view.state.doc.toString(), settings, this.colors, getLexicon())
 					: Decoration.none;
 				this.view.dispatch({ effects: setHighlights.of(decorations) });
 			}

@@ -1,6 +1,18 @@
 /** Degré d'usage d'un mot dans la langue : 0 très rare (ou inconnu), 1 rare, 2 peu courant, 3 courant. */
 export type Commonness = 0 | 1 | 2 | 3;
 
+/** Ce que la langue apporte au détecteur de mots faibles. */
+export interface WeakSupport {
+	/** Contenu (Markdown) de la note de mots faibles que l'on crée par défaut. */
+	readonly template: string;
+	/**
+	 * Toutes les formes conjuguées d'un verbe (infinitif en minuscules NFC), en minuscules NFC ;
+	 * `undefined` si la langue ne sait pas le conjuguer. La liste ne dit que les formes de ce
+	 * verbe : un stemmer rapprocherait « commencement » de « commencer ».
+	 */
+	verbForms(infinitive: string): ReadonlySet<string> | undefined;
+}
+
 /**
  * Ce qui dépend de la langue du document. Le reste du plugin (tokenizer,
  * détecteurs, éditeur) n'en sait rien : ajouter une langue, c'est écrire un
@@ -35,6 +47,8 @@ export interface Language {
 	 * se lit encore comme une répétition. Sans cette fonction, rien n'est jugé rare.
 	 */
 	commonness?(word: string): Commonness;
+	/** Mots faibles (intensifs, verbes ternes…) : sans cela, ce détecteur ne signale rien. */
+	readonly weak?: WeakSupport;
 	/** Motifs (drapeau `g`) des répliques de dialogue, ignorées si l'option est activée. */
 	readonly dialogue: readonly RegExp[];
 	/**

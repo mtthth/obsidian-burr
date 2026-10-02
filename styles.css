@@ -55,6 +55,35 @@
 	text-decoration-thickness: 2px;
 }
 
+/*
+ * Mots faibles : un pointillé dessous, dans la couleur fixe de la famille (celle de sa section dans la note).
+ * L'intensité (1 à 3) dit l'accumulation dans le paragraphe : plus il y en a, plus le trait est épais.
+ */
+.burr-weak {
+	--burr-rgb: 135, 80, 249;
+	text-decoration-line: underline;
+	text-decoration-style: dotted;
+	text-decoration-skip-ink: none;
+	text-underline-offset: 3px;
+}
+
+.burr-weak-1 {
+	text-decoration-color: rgba(var(--burr-rgb), 0.6);
+	text-decoration-thickness: 1px;
+}
+
+.burr-weak-2 {
+	text-decoration-color: rgba(var(--burr-rgb), 0.85);
+	text-decoration-thickness: 2px;
+	background-color: rgba(var(--burr-rgb), 0.08);
+}
+
+.burr-weak-3 {
+	text-decoration-color: rgba(var(--burr-rgb), 1);
+	text-decoration-thickness: 2px;
+	background-color: rgba(var(--burr-rgb), 0.18);
+}
+
 .burr-color-0 { --burr-rgb: var(--color-orange-rgb, 236, 117, 0); }
 .burr-color-1 { --burr-rgb: var(--color-blue-rgb, 8, 109, 221); }
 .burr-color-2 { --burr-rgb: var(--color-green-rgb, 8, 185, 78); }

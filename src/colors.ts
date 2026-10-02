@@ -43,7 +43,8 @@ class ColorLane {
 }
 
 /**
- * Attribue une couleur (0 à PALETTE_SIZE - 1) à chaque plage, une par famille.
+ * Attribue une couleur (0 à PALETTE_SIZE - 1) à chaque plage, une par famille. Une plage
+ * qui impose la sienne (`color`) la garde et ne compte pas dans le partage.
  * Chaque famille qui apparaît prend, parmi les couleurs, celle dont l'occurrence
  * la plus proche est la plus éloignée : deux familles voisines ne partagent une
  * couleur que si la palette est épuisée.
@@ -59,7 +60,8 @@ export function assignColors(highlights: readonly Highlight[], memory: ColorMemo
 
 	// Les plages de chaque famille ; les familles se suivent dans l'ordre du texte.
 	const families = new Map<string, Span[]>();
-	for (const { family, from, to } of highlights) {
+	for (const { family, from, to, color } of highlights) {
+		if (color !== undefined) continue;
 		const spans = families.get(family);
 		if (spans) spans.push({ from, to });
 		else families.set(family, [{ from, to }]);
@@ -96,5 +98,5 @@ export function assignColors(highlights: readonly Highlight[], memory: ColorMemo
 		place(family, spans, color);
 	}
 
-	return highlights.map((highlight) => colorOf.get(highlight.family) as number);
+	return highlights.map((highlight) => highlight.color ?? (colorOf.get(highlight.family) as number));
 }

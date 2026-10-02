@@ -2,7 +2,7 @@
 
 Plugin [Obsidian](https://obsidian.md) de **relecture de prose littéraire en français**. Pendant que vous écrivez, il surligne les répétitions : le même mot trop près de lui-même, une expression qui revient, une forme du même verbe. Comme un burr (l'aspérité que l'on retire), il montre ce qui accroche ; c'est à vous de juger. **Le texte n'est jamais modifié.**
 
-Pour l'instant, Burr ne fait qu'une chose : la détection automatique des répétitions. D'autres détecteurs (mots faibles, débuts de phrase, rythme) viendront s'y ajouter.
+Burr fait pour l'instant deux choses : la détection automatique des répétitions, et le repérage des mots faibles quand ils s'accumulent. D'autres détecteurs (débuts de phrase, rythme) viendront s'y ajouter.
 
 ## Ce que fait le plugin
 
@@ -33,6 +33,28 @@ Un mot rare se remarque : *chatoyant* employé au chapitre 1 se lit encore comme
 - **Jamais en double.** Un mot déjà surligné comme répétition proche n'est pas souligné en plus ; l'emploi suivant, s'il est lointain, l'est.
 - Les mêmes filtres s'appliquent : mots-outils, noms propres, dialogues en option. Un mot rare qui est le sujet même du texte (*harpon* dans une histoire de baleinier) s'écarte avec « Mots à ignorer en plus ».
 
+### Mots faibles
+
+Un mot faible n'est pas une faute : c'est un **signal de densité**. Un « très » passe ; trois dans un paragraphe se voient. Burr souligne donc d'un **pointillé** les familles de mots faibles, mais seulement dans les paragraphes où une famille atteint son seuil (3 occurrences par défaut, réglable de 1 à 6) : sinon tout le texte serait coloré et l'outil, illisible.
+
+- **Cinq familles, une couleur chacune, activables séparément :**
+  - *Intensifs et atténuateurs* : très, assez, plutôt, vraiment, tellement, un peu, presque, quelque peu…
+  - *Adverbes en -ment* : détectés par leur terminaison, avec une liste d'exceptions pour les noms (moment, logement, vêtement, gouvernement…) ; seuil de 3.
+  - *Verbes ternes* : faire, avoir, être, mettre, aller, sembler, paraître, commencer à, se mettre à, être en train de, sous toutes leurs formes conjuguées ; seuil de 6, car ces verbes sont partout.
+  - *Mots vagues* : chose, quelque chose, truc, sorte de, genre, un certain… ; seuil de 2.
+  - *Béquilles narratives* : soudain, tout à coup, puis, alors, comme si, peut-être…
+- **La liste est une note de votre coffre.** Burr lit une note (`mots-faibles.md` par défaut, réglable) avec une section `##` par famille : vous l'éditez dans Obsidian, elle est versionnée avec le reste et synchronisée sur mobile, et le surlignage suit chaque modification. La commande « Ouvrir la note des mots faibles » la crée avec les mots par défaut, à adapter ; tant qu'elle n'existe pas, ces mots s'appliquent. Supprimer une section retire la famille.
+  - Les mots ou expressions se séparent par des virgules ou des retours à la ligne.
+  - `## Verbes ternes (seuil 6)` : un seuil propre à la famille, qui l'emporte sur le réglage général.
+  - `@faire` désigne toutes les formes d'un verbe (*fais, faisait, fera, fit, fait*…) ; `@commencer à` ou `se @mettre à` une expression dont un mot se conjugue. Les formes sont listées, pas déduites d'un stemmer : *commencement* n'est pas *commencer*. Les verbes irréguliers viennent de la table de Burr, *être* et *avoir* d'une liste à part, les verbes en -er sont conjugués (cédille de *commençons*, e de *mangeons*) ; un autre verbe se liste forme à forme.
+  - `*ment` désigne les mots qui se terminent ainsi, sauf ceux de la ligne `sauf: moment, logement…`.
+  - Une expression l'emporte sur le mot qu'elle contient (« quelque chose » sur « chose »), et un mot précis sur un motif (« soudainement » reste une béquille, pas un adverbe en -ment).
+  - La note porte la balise `burr-ignorer` : ses propres mots ne sont pas soulignés.
+- **Une intensité selon l'accumulation** : plus la famille revient dans le paragraphe, plus le trait est épais.
+- **Au survol** : « *très* — Intensifs et atténuateurs : 3 dans ce paragraphe. »
+- **Jamais en double.** Un mot déjà surligné comme répétition ou souligné comme mot rare n'est pas signalé en plus comme faible ; il compte pourtant dans le seuil. Un paragraphe est ce qui tient entre deux sauts de ligne.
+- Les mêmes filtres s'appliquent : frontmatter, code, commentaires, dialogues en option. Dans une réplique, « vraiment » ou « quelque chose » sont souvent voulus : activez « Ignorer les dialogues ».
+
 Le mode Lecture n'est pas couvert : Burr travaille dans l'éditeur.
 
 ### Choisir ce qui est analysé
@@ -60,6 +82,10 @@ La liste des mots courants, qui sert à juger de la rareté, pèse l'essentiel d
 | Mots rares repris de loin | Souligne d'une vague les mots rares qui reviennent au-delà de la fenêtre. |
 | Mots jugés rares | Très rares seulement, rares (par défaut) ou peu courants. |
 | Portée des mots rares | 1 000, 2 000, 5 000 (par défaut) ou 10 000 mots, ou tout le document. |
+| Mots faibles | Active le soulignement des familles de mots faibles qui s'accumulent. |
+| Seuil des mots faibles | Occurrences d'une famille, dans un même paragraphe, à partir desquelles elle est soulignée (1 à 6, 3 par défaut). |
+| *(une ligne par famille)* | Active ou désactive chaque famille de mots faibles. |
+| Note des mots faibles | Chemin de la note qui liste les mots (`mots-faibles.md` par défaut) ; bouton pour l'ouvrir ou la créer. |
 | Ignorer les noms propres | Écarte les mots qui prennent une majuscule en milieu de phrase. |
 | Ignorer les dialogues | Écarte les lignes qui commencent par un tiret cadratin (— ou --) et les passages entre guillemets français. Attention : une réplique est écartée en entier, incidente comprise (« dit-il »). |
 | Mots à ignorer en plus | Vos propres exceptions, un mot par ligne ou séparés par des virgules. |
@@ -69,12 +95,14 @@ La liste des mots courants, qui sert à juger de la rareté, pèse l'essentiel d
 ## Commande
 
 - **Afficher ou masquer les répétitions** : bascule le surlignage des répétitions par proximité.
+- **Afficher ou masquer les mots faibles** : bascule le soulignement des mots faibles.
+- **Ouvrir la note des mots faibles (la créer si besoin)** : ouvre la note de mots, ou la crée avec les mots par défaut.
 - **Burr : ignorer cette note** / **Burr : réactiver pour cette note** : dans le menu du clic droit, pose ou retire la balise `burr-ignorer` dans le YAML de la note.
-- **Options de Burr** : dans le même menu, un sous-menu bascule indépendamment le surlignage des répétitions et celui des mots rares repris de loin, et propose un lien direct vers les réglages du plugin.
+- **Options de Burr** : dans le même menu, un sous-menu bascule indépendamment le surlignage des répétitions, celui des mots rares repris de loin et celui des mots faibles, et propose un lien direct vers les réglages du plugin.
 
 ## Langue
 
-Burr traite le **français** uniquement, et tout document est vu comme du français. Le code est déjà prévu pour qu'un document puisse avoir sa propre langue : tout ce qui en dépend (mots-outils, stemmer, marques de dialogue et d'ouverture de phrase) vit dans un objet `Language`, et la langue d'un document se décide en un seul endroit (`resolveLanguage`, dans [src/lang/index.ts](src/lang/index.ts)). Il n'y a pas encore de sélecteur.
+Burr traite le **français** uniquement, et tout document est vu comme du français. Le code est déjà prévu pour qu'un document puisse avoir sa propre langue : tout ce qui en dépend (mots-outils, stemmer, marques de dialogue et d'ouverture de phrase, mots faibles par défaut et conjugaison) vit dans un objet `Language`, et la langue d'un document se décide en un seul endroit (`resolveLanguage`, dans [src/lang/index.ts](src/lang/index.ts)). Il n'y a pas encore de sélecteur.
 
 ## Installation
 
@@ -119,7 +147,8 @@ src/
   analyze.ts            texte -> mots -> détecteurs -> plages à surligner
   colors.ts             une couleur par famille de plages, stable pendant la frappe
   text/                 normalisation, zones ignorées, découpage en mots
-  detectors/            un module par détecteur, même interface (types.ts)
+  detectors/            un module par détecteur, même interface (types.ts) : repetitions.ts, weak.ts
+  weak/lexicon.ts       la note de mots faibles : lecture, entrées (mot, expression, @verbe, *terminaison), recherche
   editor/highlight.ts   extension CodeMirror 6 (ViewPlugin + Decoration.mark)
   lang/                 tout ce qui dépend de la langue (fr/ : mots-outils, stemmer, verbes irréguliers,
                         fréquence des mots)
@@ -128,7 +157,7 @@ data/                   sources tierces : Lexique 3.83, définition et vocabulai
 ```
 
 - Le texte est découpé **une seule fois** ; tous les détecteurs travaillent sur les mêmes mots.
-- Un détecteur reçoit les mots et rend des plages `{from, to, category, family, intensity, target, explain}` ; `explain()` écrit à la demande la phrase de l'infobulle, dont un passage (`link`) mène à `target`, l'autre occurrence. Chaque catégorie a ses classes CSS (`burr-repetition`, `burr-echo`). En ajouter un ne touche ni l'éditeur ni l'interface : il suffit de l'inscrire dans [src/detectors/index.ts](src/detectors/index.ts).
+- Un détecteur reçoit les mots et rend des plages `{from, to, category, family, intensity, target, explain}` ; `explain()` écrit à la demande la phrase de l'infobulle, dont un passage (`link`) mène à `target`, l'autre occurrence. Chaque catégorie a ses classes CSS (`burr-repetition`, `burr-echo`, `burr-weak`). Les plages ne se chevauchent jamais : à l'intérieur de `analyze`, un détecteur cède la place à ceux qui le précèdent dans la liste. Une plage peut imposer sa couleur (`color`), comme les familles de mots faibles ; sinon `colors.ts` la choisit. En ajouter un ne touche ni l'éditeur ni l'interface : il suffit de l'inscrire dans [src/detectors/index.ts](src/detectors/index.ts).
 - La normalisation typographique (apostrophe ’, espaces insécables) **conserve la longueur du texte**, pour que les positions des surlignages restent exactes.
 
 ## Crédits

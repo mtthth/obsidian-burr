@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type BurrPlugin from "./main.ts";
-import { ECHO_REACHES, NGRAM_RANGE, WINDOW_RANGE } from "./settings.ts";
+import { DEFAULT_WEAK_NOTE, ECHO_REACHES, NGRAM_RANGE, WEAK_THRESHOLD_RANGE, WINDOW_RANGE } from "./settings.ts";
 
 export class BurrSettingTab extends PluginSettingTab {
 	private plugin: BurrPlugin;
@@ -99,6 +99,65 @@ export class BurrSettingTab extends PluginSettingTab {
 					await save();
 				});
 			});
+
+		new Setting(containerEl)
+			.setName("Mots faibles")
+			.setDesc(
+				"Souligne d'un pointillé les intensifs (très, assez), les adverbes en -ment, les verbes ternes (faire, mettre), les mots vagues et les béquilles narratives (soudain, puis), " +
+					"mais seulement quand une famille s'accumule dans un paragraphe : un « très » passe, trois se voient. Ce n'est jamais une faute.",
+			)
+			.addToggle((toggle) =>
+				toggle.setValue(settings.weakWords).onChange(async (value) => {
+					settings.weakWords = value;
+					await save();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Seuil des mots faibles")
+			.setDesc("Occurrences d'une famille, dans un même paragraphe, à partir desquelles elle est soulignée. Une famille peut avoir le sien dans la note : « ## Verbes ternes (seuil 6) ».")
+			.addSlider((slider) =>
+				slider
+					.setLimits(WEAK_THRESHOLD_RANGE.min, WEAK_THRESHOLD_RANGE.max, 1)
+					.setValue(settings.weakThreshold)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						settings.weakThreshold = value;
+						await save();
+					}),
+			);
+
+		for (const family of this.plugin.currentLexicon().families) {
+			new Setting(containerEl)
+				.setName(family.label)
+				.addToggle((toggle) =>
+					toggle.setValue(!settings.weakDisabled.includes(family.id)).onChange(async (value) => {
+						const others = settings.weakDisabled.filter((id) => id !== family.id);
+						settings.weakDisabled = value ? others : [...others, family.id];
+						await save();
+					}),
+				);
+		}
+
+		new Setting(containerEl)
+			.setName("Note des mots faibles")
+			.setDesc(
+				"Les mots de chaque famille se lisent dans une note du coffre (une section par famille) : vous l'éditez dans Obsidian, elle est versionnée et synchronisée avec le reste. " +
+					"Tant qu'elle n'existe pas, Burr utilise les mots de la langue.",
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder(DEFAULT_WEAK_NOTE)
+					.setValue(settings.weakNote)
+					.onChange(async (value) => {
+						settings.weakNote = value.trim() || DEFAULT_WEAK_NOTE;
+						await this.plugin.saveSettings();
+						await this.plugin.loadLexicon();
+					}),
+			)
+			.addButton((button) =>
+				button.setButtonText("Ouvrir").onClick(() => this.plugin.openWeakWordsNote()),
+			);
 
 		new Setting(containerEl)
 			.setName("Ignorer les noms propres")
