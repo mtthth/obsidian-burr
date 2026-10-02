@@ -135,7 +135,12 @@ const explanation = hoverTooltip(
 			pos: from,
 			end: to,
 			above: true,
-			create: (editor) => ({ dom: renderExplanation(editor, explain(), target) }),
+			create: (editor) => {
+				// Marginal Notes, s'il est là, repère ces passages dans sa minipage tant que l'infobulle reste ouverte.
+				const point = (ranges: Span[]) => editor.dom.dispatchEvent(new CustomEvent("burr:point", { detail: { ranges } }));
+				point(target ? [{ from, to }, target] : [{ from, to }]);
+				return { dom: renderExplanation(editor, explain(), target), destroy: () => point([]) };
+			},
 		};
 	},
 	{ hideOnChange: true },
