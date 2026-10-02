@@ -167,3 +167,11 @@ test("une expression aux mots courants (« clin d'œil ») est soulignée quand 
 	assert.deepEqual(echoes(`La grande maison. ${filler(500)} La grande maison.`), []);
 	assert.deepEqual(echoes(text, { echoes: false }), []);
 });
+
+test("une expression qui en chevauche une autre est soulignée d'un bloc (« me fait un clin d'œil »)", () => {
+	const text = `Il me fait un clin d’œil. ${filler(500)} Elle me fait un clin d’œil.`;
+	assert.deepEqual(
+		echoes(text).map(([word]) => word),
+		["fait un clin d’œil", "fait un clin d’œil"],
+	);
+});

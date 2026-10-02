@@ -313,8 +313,10 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 				}
 				if (blocked || full < 2 || rarest > settings.echoRarity) continue;
 
-				let key = tokens[i].norm;
-				for (let k = 1; k < size; k++) key += " " + tokens[i + k].norm;
+				// Par famille, pour que « clins d'œil » réponde à « clin d'œil ».
+				const part = (index: number) => (kind[index] === FULL ? wordFamily(index) : tokens[index].norm);
+				let key = part(i);
+				for (let k = 1; k < size; k++) key += " " + part(i + k);
 				const previous = lastOfPhrase.get(key);
 				if (previous !== undefined && i - previous > reach && i - previous <= echoReach) {
 					for (const [start, other] of [
@@ -357,8 +359,12 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 			i = end;
 		} else if (echoPhraseSize[i]) {
 			const start = i;
-			const size = echoPhraseSize[i];
 			const other = echoPhraseOther[i];
+			// « fait un clin » et « clin d'œil » se chevauchent : c'est « fait un clin d'œil » qui revient.
+			let size = echoPhraseSize[i];
+			for (let j = i + 1; j < i + size; j++) {
+				if (echoPhraseSize[j] && echoPhraseOther[j] - other === j - i && j - i + echoPhraseSize[j] > size) size = j - i + echoPhraseSize[j];
+			}
 			highlights.push({
 				from: tokens[i].from,
 				to: tokens[i + size - 1].to,
