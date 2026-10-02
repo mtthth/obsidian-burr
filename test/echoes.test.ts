@@ -157,3 +157,13 @@ test("les réglages des mots rares sont bornés", () => {
 	assert.equal(sanitizeSettings({ echoReach: "5000" as unknown as number }).echoReach, 5000);
 	assert.equal(sanitizeSettings({}).echoes, true);
 });
+
+test("une expression aux mots courants (« clin d'œil ») est soulignée quand elle revient de loin", () => {
+	const text = `Un clin d’œil. ${filler(500)} Un clin d’œil.`;
+	assert.deepEqual(echoes(text), [
+		["clin d’œil", 1],
+		["clin d’œil", 1],
+	]);
+	assert.deepEqual(echoes(`La grande maison. ${filler(500)} La grande maison.`), []);
+	assert.deepEqual(echoes(text, { echoes: false }), []);
+});

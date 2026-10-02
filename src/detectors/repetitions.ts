@@ -265,6 +265,9 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 	// explique l'emploi le plus proche (le premier à égalité).
 	const echoOther = new Int32Array(count).fill(-1);
 	const echoCommonness = new Uint8Array(count);
+	const echoPhraseSize = new Uint8Array(count); // le nombre de mots de l'expression rare qui commence ici
+	const echoPhraseOther = new Int32Array(count); // le premier mot de l'autre occurrence
+	const echoPhraseRarity = new Uint8Array(count); // le degré d'usage de son mot le plus rare
 	if (settings.echoes && language.commonness) {
 		const echoReach = settings.echoReach > 0 ? settings.echoReach : Infinity;
 		const lastOfFamily = new Map<string, number>();
@@ -285,6 +288,47 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 				link(previous, i);
 			}
 			lastOfFamily.set(family, i);
+		}
+
+		// Une expression dont les mots sont courants (« clin d'œil ») se remarque pourtant
+		// quand elle revient de loin : on la souligne d'un bloc si l'un de ses mots n'est
+		// pas plus courant que le seuil. Trois mots ou plus : deux mots pleins collés
+		// (« grand homme ») reviennent trop naturellement.
+		const commonnessOf = language.commonness;
+		const lastOfPhrase = new Map<string, number>();
+		for (let size = 3; size <= settings.maxNgram; size++) {
+			lastOfPhrase.clear();
+			for (let i = 0; i + size <= count; i++) {
+				// L'expression commence et finit par un mot plein : « un clin d'œil » se souligne « clin d'œil ».
+				if (kind[i] !== FULL || kind[i + size - 1] !== FULL || tokens[i].segment !== tokens[i + size - 1].segment) continue;
+				let full = 0;
+				let rarest = 3;
+				let blocked = false;
+				for (let k = 0; k < size; k++) {
+					if (kind[i + k] === EXCLUDED || wordLevel[i + k] || phraseLevel[i + k] || echoOther[i + k] >= 0) blocked = true;
+					else if (kind[i + k] === FULL) {
+						full++;
+						rarest = Math.min(rarest, commonnessOf(tokens[i + k].norm));
+					}
+				}
+				if (blocked || full < 2 || rarest > settings.echoRarity) continue;
+
+				let key = tokens[i].norm;
+				for (let k = 1; k < size; k++) key += " " + tokens[i + k].norm;
+				const previous = lastOfPhrase.get(key);
+				if (previous !== undefined && i - previous > reach && i - previous <= echoReach) {
+					for (const [start, other] of [
+						[i, previous],
+						[previous, i],
+					]) {
+						if (echoPhraseSize[start] >= size) continue;
+						echoPhraseSize[start] = size;
+						echoPhraseOther[start] = other;
+						echoPhraseRarity[start] = rarest;
+					}
+				}
+				lastOfPhrase.set(key, i);
+			}
 		}
 	}
 
@@ -311,6 +355,27 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 				explain: explainPhrase(phraseStart[strongest], phraseOther[strongest], phraseSize[strongest]),
 			});
 			i = end;
+		} else if (echoPhraseSize[i]) {
+			const start = i;
+			const size = echoPhraseSize[i];
+			const other = echoPhraseOther[i];
+			highlights.push({
+				from: tokens[i].from,
+				to: tokens[i + size - 1].to,
+				category: ECHO,
+				family: tokens
+					.slice(i, i + size)
+					.map((t) => t.norm)
+					.join(" "),
+				intensity: Math.max(1, 3 - echoPhraseRarity[i]) as Intensity,
+				target: spanOf(other, other + size - 1),
+				explain: () => {
+					const before = other < start;
+					const place = where(Math.abs(start - other), before);
+					return sentence(`L'expression « ${textOf(start, start + size - 1)} » ${before ? "apparaît déjà" : "revient"} `, place, ".");
+				},
+			});
+			i += size;
 		} else {
 			if (wordLevel[i]) {
 				highlights.push({
