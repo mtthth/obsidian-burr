@@ -11,6 +11,9 @@ const FAMILY_COLORS = [1, 3, 5, 7, 9, 10, 11, 6] as const;
 
 type Intensity = 1 | 2 | 3;
 
+/** Le poids d'un passage selon son intensité (voir `Highlight.severity`) : un mot faible est un signal discret. */
+const SEVERITY = [0, 0.5, 1, 1.5];
+
 /** Plus une famille s'accumule dans le paragraphe, plus le soulignement est marqué. */
 function intensityFor(count: number, threshold: number): Intensity {
 	return count >= 2 * threshold ? 3 : count > threshold ? 2 : 1;
@@ -73,6 +76,8 @@ function detect({ text, tokens, language, settings, lexicon }: DetectionInput): 
 			family: `faible:${family.id}`,
 			color: FAMILY_COLORS[rank % FAMILY_COLORS.length],
 			intensity: intensityFor(count, threshold),
+			severity: SEVERITY[intensityFor(count, threshold)],
+			group: `faible:${family.id}:${where}`,
 			explain: () => ({ text: `« ${text.slice(from, to)} » — ${family.label} : ${count} dans ce paragraphe.` }),
 		});
 	}

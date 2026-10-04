@@ -131,3 +131,57 @@
 .burr-jump:hover {
 	color: var(--text-accent-hover);
 }
+
+/* Le panneau « Priorités » : les problèmes les plus graves de la note, un clic mène au texte. */
+.burr-priorities {
+	padding: var(--size-4-2);
+}
+
+.burr-priorities-summary,
+.burr-priorities-empty {
+	margin-bottom: var(--size-4-2);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.burr-priority {
+	--burr-rgb: 236, 117, 0;
+	margin-bottom: var(--size-2-2);
+	padding: var(--size-2-3) var(--size-4-2);
+	border-left: 3px solid rgb(var(--burr-rgb));
+	border-radius: var(--radius-s);
+	background-color: var(--background-secondary);
+	cursor: pointer;
+}
+
+.burr-priority:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.burr-priority-weak {
+	--burr-rgb: 135, 80, 249;
+}
+
+.burr-priority-head {
+	display: flex;
+	gap: var(--size-4-2);
+	align-items: baseline;
+}
+
+.burr-priority-score {
+	min-width: 2.2em;
+	color: rgb(var(--burr-rgb));
+	font-variant-numeric: tabular-nums;
+	font-weight: var(--font-bold);
+}
+
+.burr-priority-title {
+	color: var(--text-normal);
+	font-weight: var(--font-medium);
+}
+
+.burr-priority-detail {
+	margin-top: var(--size-2-1);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}

@@ -1,7 +1,11 @@
 import type { EditorView } from "@codemirror/view";
 import { MarkdownView, Menu, Notice, Plugin, TFile, editorInfoField, normalizePath } from "obsidian";
 import type { MenuItem } from "obsidian";
+import { analyze } from "./analyze.ts";
 import { burrHighlighter, refreshHighlights } from "./editor/highlight.ts";
+import { PRIORITIES_VIEW, PrioritiesView } from "./panel/prioritiesView.ts";
+import { prioritize } from "./priorities.ts";
+import type { Problem } from "./priorities.ts";
 import { addIgnoreTag, exclusionOf, removeIgnoreTag } from "./scope.ts";
 import type { Exclusion } from "./scope.ts";
 import { DEFAULT_SETTINGS, sanitizeSettings } from "./settings.ts";
@@ -24,6 +28,14 @@ export default class BurrPlugin extends Plugin {
 		this.settings = sanitizeSettings(await this.loadData());
 
 		this.registerEditorExtension(burrHighlighter(() => this.settings, (view) => this.isExcluded(view), () => this.lexicon));
+
+		this.registerView(PRIORITIES_VIEW, (leaf) => new PrioritiesView(leaf, this));
+		this.addRibbonIcon("list-ordered", "Priorités de Burr", () => void this.openPriorities());
+		this.addCommand({
+			id: "open-priorities",
+			name: "Ouvrir le panneau des priorités",
+			callback: () => this.openPriorities(),
+		});
 
 		this.addCommand({
 			id: "toggle-repetitions",
@@ -116,6 +128,28 @@ export default class BurrPlugin extends Plugin {
 	/** Les mots faibles en vigueur : ceux de la note, à défaut ceux de la langue. */
 	currentLexicon(): Lexicon {
 		return this.lexicon ?? defaultLexicon(resolveLanguage({ text: "" }));
+	}
+
+	/** Les problèmes d'une note, du plus grave au moins grave (voir `priorities.ts`). Même règle que l'éditeur pour ce qui est laissé de côté. */
+	problemsOf(view: MarkdownView): Problem[] | null | undefined {
+		const { settings } = this;
+		if (!(settings.enabled || settings.echoes || settings.weakWords)) return undefined;
+		if (view.file && this.exclusion(view.file) !== null) return null;
+		const text = view.editor.getValue();
+		return prioritize(text, analyze(text, settings, this.lexicon));
+	}
+
+	/** Montre le panneau des priorités dans la barre latérale droite (le crée au besoin). */
+	async openPriorities() {
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType(PRIORITIES_VIEW)[0];
+		if (!leaf) {
+			const right = workspace.getRightLeaf(false);
+			if (!right) return;
+			await right.setViewState({ type: PRIORITIES_VIEW, active: true });
+			leaf = right;
+		}
+		workspace.revealLeaf(leaf);
 	}
 
 	/** Relit la note des mots faibles (absente : on revient aux mots de la langue) et relance l'analyse. */
@@ -238,6 +272,9 @@ export default class BurrPlugin extends Plugin {
 
 	/** Relance l'analyse dans les éditeurs ouverts : tous, ou ceux d'une seule note. */
 	private refreshEditors(only?: TFile) {
+		for (const leaf of this.app.workspace.getLeavesOfType(PRIORITIES_VIEW)) {
+			if (leaf.view instanceof PrioritiesView) leaf.view.refresh();
+		}
 		this.app.workspace.iterateAllLeaves((leaf) => {
 			if (!(leaf.view instanceof MarkdownView)) return;
 			if (only && leaf.view.file !== only) return;

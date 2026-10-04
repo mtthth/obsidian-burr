@@ -26,6 +26,10 @@ function intensityFor(distance: number, window: number): Intensity {
 	return ratio <= 0.2 ? 3 : ratio <= 0.5 ? 2 : 1;
 }
 
+/** Le poids d'un passage selon son intensité (voir `Highlight.severity`) : un mot, puis une expression. */
+const WORD_SEVERITY = [0, 1, 2, 4];
+const PHRASE_SEVERITY = [0, 2, 3, 5];
+
 /** Où se trouve l'autre occurrence, en mots : « 5 mots plus haut », « 2 960 mots plus loin », « juste après »… */
 function where(distance: number, before: boolean): string {
 	if (distance === 1) return before ? "juste avant" : "juste après";
@@ -353,6 +357,8 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 				category: REPETITION,
 				family: phraseKey[strongest],
 				intensity: level as Intensity,
+				// Une expression longue se remarque plus qu'une paire de mots.
+				severity: PHRASE_SEVERITY[level] + phraseSize[strongest] - 1,
 				target: spanOf(phraseOther[strongest], phraseOther[strongest] + phraseSize[strongest] - 1),
 				explain: explainPhrase(phraseStart[strongest], phraseOther[strongest], phraseSize[strongest]),
 			});
@@ -374,6 +380,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 					.map((t) => t.norm)
 					.join(" "),
 				intensity: Math.max(1, 3 - echoPhraseRarity[i]) as Intensity,
+				severity: Math.max(1, 3 - echoPhraseRarity[i]),
 				target: spanOf(other, other + size - 1),
 				explain: () => {
 					const before = other < start;
@@ -390,6 +397,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 					category: REPETITION,
 					family: wordFamily(i),
 					intensity: wordLevel[i] as Intensity,
+					severity: WORD_SEVERITY[wordLevel[i]],
 					target: spanOf(wordOther[i], wordOther[i]),
 					explain: explainWord(i, wordOther[i], wordSame[i] === 1),
 				});
@@ -402,6 +410,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 					family: wordFamily(i),
 					// Plus le mot est rare, plus la vague est marquée.
 					intensity: (3 - echoCommonness[i]) as Intensity,
+					severity: 3 - echoCommonness[i],
 					target: spanOf(echoOther[i], echoOther[i]),
 					explain: explainEcho(i, echoOther[i], echoCommonness[i]),
 				});

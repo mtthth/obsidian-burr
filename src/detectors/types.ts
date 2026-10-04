@@ -27,6 +27,17 @@ export interface Highlight {
 	family: string;
 	/** 1 (discret) à 3 (marqué). */
 	intensity: 1 | 2 | 3;
+	/**
+	 * Le poids de ce passage dans la gravité du problème auquel il appartient (voir `priorities.ts`) :
+	 * plus il est élevé, plus le lecteur le remarquera. Échelle commune à tous les détecteurs :
+	 * une répétition marquée pèse 4 à 8, un écho 1 à 3, un mot faible 0,5 à 1,5.
+	 */
+	severity: number;
+	/**
+	 * Le problème auquel appartient le passage, quand aucune cible ne le relie aux autres
+	 * (des mots faibles d'un même paragraphe). Les passages qui ont une cible se regroupent par elle.
+	 */
+	group?: string;
 	/** Couleur imposée (0 à PALETTE_SIZE - 1), quand la famille a toujours la même ; sinon elle est attribuée. */
 	color?: number;
 	/** L'autre occurrence dont parle l'infobulle, où mène son lien. Positions dans le document analysé. */
