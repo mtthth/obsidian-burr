@@ -1,6 +1,6 @@
 import { EditorSelection, StateEffect, StateField } from "@codemirror/state";
 import type { ChangeDesc, Extension } from "@codemirror/state";
-import { Decoration, EditorView, ViewPlugin, closeHoverTooltips, hoverTooltip } from "@codemirror/view";
+import { Decoration, EditorView, RectangleMarker, ViewPlugin, closeHoverTooltips, hoverTooltip, layer } from "@codemirror/view";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
 import { analyze } from "../analyze.ts";
 import { PALETTE_SIZE, assignColors } from "../colors.ts";
@@ -64,7 +64,6 @@ const highlightField = StateField.define<Highlights>({
 			since: value.since ? value.since.composeDesc(changes) : changes,
 		};
 	},
-	provide: (field) => EditorView.decorations.from(field, (value) => value.decorations),
 });
 
 function buildDecorations(
@@ -89,11 +88,12 @@ function buildDecorations(
 
 /**
  * Encadre un passage (cadre rouge creux, clignotant) et les autres de sa famille (le même cadre, fixe),
- * jusqu'à ce que le texte change ou que la sélection quitte le premier.
+ * jusqu'à ce que le texte change ou que la sélection quitte le premier. Les marques ne dessinent rien :
+ * elles disent où tracer les cadres (`focusFrames`) et où taire les surlignages (`visibleHighlights`).
  */
 const setFocus = StateEffect.define<{ main: Span; others: Span[] } | null>();
-const focusMark = Decoration.mark({ class: "burr-focus" });
-const focusOtherMark = Decoration.mark({ class: "burr-focus-other" });
+const focusMark = Decoration.mark({});
+const focusOtherMark = Decoration.mark({});
 
 const focusField = StateField.define<DecorationSet>({
 	create: () => Decoration.none,
@@ -120,7 +120,49 @@ const focusField = StateField.define<DecorationSet>({
 		}
 		return value;
 	},
-	provide: (field) => EditorView.decorations.from(field),
+});
+
+/**
+ * Les cadres rouges, tracés comme la sélection d'Obsidian (`RectangleMarker.forRange`, sous le texte) :
+ * le cadre du passage choisi épouse exactement sa sélection, au pixel près, quels que soient police et zoom.
+ */
+const focusFrames = layer({
+	above: false,
+	class: "burr-focus-layer",
+	markers(view) {
+		const markers: RectangleMarker[] = [];
+		view.state.field(focusField).between(0, view.state.doc.length, (from, to, mark) => {
+			const className = mark === focusMark ? "burr-focus" : "burr-focus-other";
+			markers.push(...RectangleMarker.forRange(view, className, EditorSelection.range(from, to)));
+		});
+		return markers;
+	},
+	update: (update) =>
+		update.docChanged ||
+		update.selectionSet ||
+		update.viewportChanged ||
+		update.startState.field(focusField) !== update.state.field(focusField),
+});
+
+/**
+ * Les surlignages, sauf sous les cadres : la couleur, moins haute que la ligne, y ferait
+ * un rectangle de plus, décalé de quelques pixels. Ils reviennent quand les cadres s'en vont.
+ */
+const visibleHighlights = EditorView.decorations.compute([highlightField, focusField], (state) => {
+	const { decorations } = state.field(highlightField);
+	const focus = state.field(focusField);
+	if (focus.size === 0) return decorations;
+	return decorations.update({
+		filter: (from, to) => {
+			let framed = false;
+			focus.between(from, to, (start, end) => {
+				if (start >= to || end <= from) return;
+				framed = true;
+				return false;
+			});
+			return !framed;
+		},
+	});
 });
 
 /** Montre un passage : on le sélectionne, on le centre à l'écran, et on l'encadre en rouge, avec `others` en cadre fixe. */
@@ -254,5 +296,5 @@ export function burrHighlighter(
 			}
 		},
 	);
-	return [highlightField, focusField, explanation, scheduler];
+	return [highlightField, focusField, visibleHighlights, focusFrames, explanation, scheduler];
 }

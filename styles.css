@@ -186,17 +186,16 @@
 	font-size: var(--font-ui-smaller);
 }
 
-/* Le passage que l'on vient de choisir dans le panneau : un rectangle rouge creux de 5 px, qui clignote ;
-   les autres passages du problème ont le même cadre, fixe. */
-.burr-focus,
-.burr-focus-other {
+/* Le passage que l'on vient de choisir dans le panneau : un rectangle rouge creux de 5 px, qui clignote
+   deux fois par seconde ; les autres passages du problème ont le même cadre, fixe. CodeMirror trace ces
+   cadres comme la sélection, aux mêmes bords : angles droits, comme elle, et rien entre les deux. */
+.burr-focus-layer > .burr-focus,
+.burr-focus-layer > .burr-focus-other {
 	outline: 5px solid var(--color-red, #e93147);
-	outline-offset: 1px;
-	border-radius: 2px;
 }
 
-.burr-focus {
-	animation: burr-blink 1s step-end infinite;
+.burr-focus-layer > .burr-focus {
+	animation: burr-blink 0.5s step-end infinite;
 }
 
 @keyframes burr-blink {
@@ -206,7 +205,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.burr-focus {
+	.burr-focus-layer > .burr-focus {
 		animation: none;
 	}
 }
