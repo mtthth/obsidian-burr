@@ -149,7 +149,7 @@ export class PrioritiesView extends ItemView {
 			// `editor.cm` n'est pas dans l'API publique, mais c'est l'usage établi.
 			const cm = (view.editor as unknown as { cm?: EditorView }).cm;
 			if (cm) {
-				showPassage(cm, span);
+				showPassage(cm, span, problem.spans.filter((other) => other !== span));
 				cm.focus();
 			} else {
 				view.editor.setSelection(view.editor.offsetToPos(span.from), view.editor.offsetToPos(span.to));

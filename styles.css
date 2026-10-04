@@ -186,11 +186,16 @@
 	font-size: var(--font-ui-smaller);
 }
 
-/* Le passage que l'on vient de choisir dans le panneau : un rectangle rouge creux de 5 px, qui clignote. */
-.burr-focus {
+/* Le passage que l'on vient de choisir dans le panneau : un rectangle rouge creux de 5 px, qui clignote ;
+   les autres passages du problème ont le même cadre, fixe. */
+.burr-focus,
+.burr-focus-other {
 	outline: 5px solid var(--color-red, #e93147);
 	outline-offset: 1px;
 	border-radius: 2px;
+}
+
+.burr-focus {
 	animation: burr-blink 1s step-end infinite;
 }
 

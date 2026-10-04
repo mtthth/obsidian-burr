@@ -87,25 +87,34 @@ function buildDecorations(
 	return Decoration.set(ranges, true);
 }
 
-/** Encadre un passage (cadre rouge creux), jusqu'à ce que le texte change ou que la sélection s'en aille. */
-const setFocus = StateEffect.define<Span | null>();
+/**
+ * Encadre un passage (cadre rouge creux, clignotant) et les autres de sa famille (le même cadre, fixe),
+ * jusqu'à ce que le texte change ou que la sélection quitte le premier.
+ */
+const setFocus = StateEffect.define<{ main: Span; others: Span[] } | null>();
 const focusMark = Decoration.mark({ class: "burr-focus" });
+const focusOtherMark = Decoration.mark({ class: "burr-focus-other" });
 
 const focusField = StateField.define<DecorationSet>({
 	create: () => Decoration.none,
 	update(value, transaction) {
 		for (const effect of transaction.effects) {
 			if (!effect.is(setFocus)) continue;
-			const span = effect.value;
-			return span && span.to > span.from ? Decoration.set([focusMark.range(span.from, span.to)]) : Decoration.none;
+			const focus = effect.value;
+			if (!focus) return Decoration.none;
+			const ranges = [focusMark.range(focus.main.from, focus.main.to)];
+			for (const other of focus.others) {
+				if (other.to > other.from) ranges.push(focusOtherMark.range(other.from, other.to));
+			}
+			return focus.main.to > focus.main.from ? Decoration.set(ranges, true) : Decoration.none;
 		}
 		if (transaction.docChanged) return Decoration.none;
 		if (transaction.selection && value.size > 0) {
-			// Une sélection ailleurs, ou plus étroite : le cadre n'a plus lieu d'être.
+			// Une sélection ailleurs, ou plus étroite que le passage encadré : les cadres n'ont plus lieu d'être.
 			const { from, to } = transaction.state.selection.main;
 			let kept = false;
-			value.between(from, to, (start, end) => {
-				if (start === from && end === to) kept = true;
+			value.between(from, to, (start, end, mark) => {
+				if (start === from && end === to && mark === focusMark) kept = true;
 			});
 			return kept ? value : Decoration.none;
 		}
@@ -114,14 +123,14 @@ const focusField = StateField.define<DecorationSet>({
 	provide: (field) => EditorView.decorations.from(field),
 });
 
-/** Montre un passage : on le sélectionne, on le centre à l'écran, et on l'encadre en rouge. */
-export function showPassage(view: EditorView, span: Span) {
+/** Montre un passage : on le sélectionne, on le centre à l'écran, et on l'encadre en rouge, avec `others` en cadre fixe. */
+export function showPassage(view: EditorView, span: Span, others: readonly Span[] = []) {
 	const length = view.state.doc.length;
-	const from = Math.min(span.from, length);
-	const to = Math.min(span.to, length);
+	const clamp = (s: Span): Span => ({ from: Math.min(s.from, length), to: Math.min(s.to, length) });
+	const main = clamp(span);
 	view.dispatch({
-		selection: EditorSelection.single(from, to),
-		effects: [EditorView.scrollIntoView(from, { y: "center" }), setFocus.of({ from, to })],
+		selection: EditorSelection.single(main.from, main.to),
+		effects: [EditorView.scrollIntoView(main.from, { y: "center" }), setFocus.of({ main, others: others.map(clamp) })],
 	});
 }
 
