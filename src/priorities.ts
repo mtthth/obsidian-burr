@@ -1,7 +1,14 @@
 import type { Highlight } from "./detectors/index.ts";
 
+/** Identifie un type de problème (catégorie et famille), d'une analyse à l'autre : ce que l'auteur ignore. */
+export function problemKey(highlight: Highlight): string {
+	return `${highlight.category}:${highlight.family}`;
+}
+
 /** Un problème : les passages qui se répondent (un mot répété, un paragraphe chargé en mots faibles), et sa gravité. */
 export interface Problem {
+	/** Identifie le problème d'une analyse à l'autre (catégorie et famille), pour pouvoir l'ignorer. */
+	key: string;
 	/** Somme du poids des passages (`Highlight.severity`) : de quoi classer les problèmes entre eux. */
 	score: number;
 	category: string;
@@ -62,7 +69,7 @@ export function prioritize(text: string, highlights: readonly Highlight[]): Prob
 		const root = find(i);
 		let problem = problems.get(root);
 		if (!problem) {
-			problem = { score: 0, category: h.category, spans: [], words: [], detail: h.explain().text, first: h.from };
+			problem = { key: problemKey(h), score: 0, category: h.category, spans: [], words: [], detail: h.explain().text, first: h.from };
 			problems.set(root, problem);
 		}
 		problem.score += h.severity;

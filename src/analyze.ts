@@ -1,6 +1,7 @@
 import { detectors } from "./detectors/index.ts";
 import type { Highlight } from "./detectors/index.ts";
 import { resolveLanguage } from "./lang/index.ts";
+import { problemKey } from "./priorities.ts";
 import type { BurrSettings } from "./settings.ts";
 import { tokenize } from "./text/tokenize.ts";
 import { defaultLexicon } from "./weak/lexicon.ts";
@@ -27,15 +28,19 @@ function withoutOverlap(found: Highlight[], taken: readonly Highlight[]): Highli
  * Les plages ne se chevauchent jamais : un détecteur cède la place à ceux qui le précèdent
  * dans `detectors` (un mot déjà surligné comme répétition n'est pas signalé en plus comme faible).
  * `lexicon` : les mots faibles de l'auteur ; à défaut, ceux de la langue.
+ * `ignored` : les types de problèmes (`problemKey`) que l'auteur ne veut plus voir dans cette note ;
+ * ils sont écartés avant le partage des plages, comme s'ils n'avaient pas été détectés.
  */
-export function analyze(text: string, settings: BurrSettings, lexicon?: Lexicon): Highlight[] {
+export function analyze(text: string, settings: BurrSettings, lexicon?: Lexicon, ignored?: ReadonlySet<string>): Highlight[] {
 	const language = resolveLanguage({ text });
 	const tokens = tokenize(text, language, { ignoreDialogue: settings.ignoreDialogue });
 	const words = lexicon ?? defaultLexicon(language);
 
 	let taken: Highlight[] = [];
 	for (const detector of detectors) {
-		const found = withoutOverlap(detector.detect({ text, tokens, language, settings, lexicon: words }), taken);
+		let detected = detector.detect({ text, tokens, language, settings, lexicon: words });
+		if (ignored && ignored.size > 0) detected = detected.filter((h) => !ignored.has(problemKey(h)));
+		const found = withoutOverlap(detected, taken);
 		taken = taken.concat(found).sort((a, b) => a.from - b.from || a.to - b.to);
 	}
 	return taken;

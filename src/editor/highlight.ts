@@ -67,8 +67,14 @@ const highlightField = StateField.define<Highlights>({
 	provide: (field) => EditorView.decorations.from(field, (value) => value.decorations),
 });
 
-function buildDecorations(text: string, settings: BurrSettings, memory: ColorMemory, lexicon?: Lexicon): DecorationSet {
-	const highlights = analyze(text, settings, lexicon);
+function buildDecorations(
+	text: string,
+	settings: BurrSettings,
+	memory: ColorMemory,
+	lexicon: Lexicon | undefined,
+	ignored: ReadonlySet<string>,
+): DecorationSet {
+	const highlights = analyze(text, settings, lexicon, ignored);
 	const colors = assignColors(highlights, memory);
 	const ranges = highlights.map((h, i) =>
 		// La décoration porte aussi l'explication et sa cible, que l'infobulle retrouve par sa position.
@@ -79,6 +85,44 @@ function buildDecorations(text: string, settings: BurrSettings, memory: ColorMem
 		}).range(h.from, h.to),
 	);
 	return Decoration.set(ranges, true);
+}
+
+/** Encadre un passage (cadre rouge creux), jusqu'à ce que le texte change ou que la sélection s'en aille. */
+const setFocus = StateEffect.define<Span | null>();
+const focusMark = Decoration.mark({ class: "burr-focus" });
+
+const focusField = StateField.define<DecorationSet>({
+	create: () => Decoration.none,
+	update(value, transaction) {
+		for (const effect of transaction.effects) {
+			if (!effect.is(setFocus)) continue;
+			const span = effect.value;
+			return span && span.to > span.from ? Decoration.set([focusMark.range(span.from, span.to)]) : Decoration.none;
+		}
+		if (transaction.docChanged) return Decoration.none;
+		if (transaction.selection && value.size > 0) {
+			// Une sélection ailleurs, ou plus étroite : le cadre n'a plus lieu d'être.
+			const { from, to } = transaction.state.selection.main;
+			let kept = false;
+			value.between(from, to, (start, end) => {
+				if (start === from && end === to) kept = true;
+			});
+			return kept ? value : Decoration.none;
+		}
+		return value;
+	},
+	provide: (field) => EditorView.decorations.from(field),
+});
+
+/** Montre un passage : on le sélectionne, on le centre à l'écran, et on l'encadre en rouge. */
+export function showPassage(view: EditorView, span: Span) {
+	const length = view.state.doc.length;
+	const from = Math.min(span.from, length);
+	const to = Math.min(span.to, length);
+	view.dispatch({
+		selection: EditorSelection.single(from, to),
+		effects: [EditorView.scrollIntoView(from, { y: "center" }), setFocus.of({ from, to })],
+	});
 }
 
 /** Sélectionne l'autre occurrence et la montre au milieu de l'écran. */
@@ -149,12 +193,14 @@ const explanation = hoverTooltip(
 
 /**
  * Surligne les répétitions du document, en mode source comme en aperçu en direct.
- * `isExcluded` dit si la note de cet éditeur est laissée de côté (dossier, balise du YAML).
+ * `isExcluded` dit si la note de cet éditeur est laissée de côté (dossier, balise du YAML) ;
+ * `getIgnored` donne les types de problèmes que l'auteur a écartés pour cette note.
  */
 export function burrHighlighter(
 	getSettings: () => BurrSettings,
 	isExcluded: (view: EditorView) => boolean,
 	getLexicon: () => Lexicon | undefined,
+	getIgnored: (view: EditorView) => ReadonlySet<string>,
 ): Extension {
 	const scheduler = ViewPlugin.fromClass(
 		class {
@@ -193,11 +239,11 @@ export function burrHighlighter(
 				this.timer = null;
 				const settings = getSettings();
 				const decorations = (settings.enabled || settings.echoes || settings.weakWords) && !isExcluded(this.view)
-					? buildDecorations(this.view.state.doc.toString(), settings, this.colors, getLexicon())
+					? buildDecorations(this.view.state.doc.toString(), settings, this.colors, getLexicon(), getIgnored(this.view))
 					: Decoration.none;
 				this.view.dispatch({ effects: setHighlights.of(decorations) });
 			}
 		},
 	);
-	return [highlightField, explanation, scheduler];
+	return [highlightField, focusField, explanation, scheduler];
 }

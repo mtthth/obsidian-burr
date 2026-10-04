@@ -185,3 +185,29 @@
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 }
+
+/* Le passage que l'on vient de choisir dans le panneau : un cadre rouge creux, bien visible. */
+.burr-focus {
+	outline: 2px solid var(--color-red, #e93147);
+	outline-offset: 1px;
+	border-radius: 2px;
+}
+
+.burr-priorities-header {
+	display: flex;
+	gap: var(--size-4-2);
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--size-4-2);
+}
+
+.burr-priorities-header .burr-priorities-summary {
+	margin-bottom: 0;
+}
+
+.burr-priorities-toggle {
+	flex: none;
+	height: auto;
+	padding: var(--size-2-1) var(--size-4-2);
+	font-size: var(--font-ui-smaller);
+}

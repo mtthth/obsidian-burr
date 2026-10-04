@@ -21,6 +21,8 @@ export interface BurrSettings {
 	weakDisabled: string[];
 	/** Chemin de la note qui liste les mots faibles ; absente, les mots de la langue s'appliquent. */
 	weakNote: string;
+	/** Les problèmes écartés du panneau des priorités, par chemin de note (leur clé : voir `Problem.key`). */
+	ignoredProblems: Record<string, string[]>;
 	/** Ne jamais signaler un mot qui prend une majuscule en milieu de phrase. */
 	ignoreProperNames: boolean;
 	/** Laisser de côté les répliques de dialogue. */
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: BurrSettings = {
 	weakThreshold: 3,
 	weakDisabled: [],
 	weakNote: DEFAULT_WEAK_NOTE,
+	ignoredProblems: {},
 	ignoreProperNames: true,
 	ignoreDialogue: false,
 	extraIgnoredWords: "",
@@ -62,6 +65,18 @@ export const DEFAULT_SETTINGS: BurrSettings = {
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+/** Le registre des problèmes ignorés tel qu'il est lu sur le disque : des listes de chaînes, par note. */
+function sanitizeIgnored(raw: unknown): Record<string, string[]> {
+	const result: Record<string, string[]> = {};
+	if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return result;
+	for (const [path, keys] of Object.entries(raw)) {
+		if (!Array.isArray(keys)) continue;
+		const valid = keys.filter((key): key is string => typeof key === "string");
+		if (valid.length > 0) result[path] = valid;
+	}
+	return result;
+}
 
 /** Complète et borne des réglages lus sur le disque (fichier édité à la main, ancienne version…). */
 export function sanitizeSettings(raw: Partial<BurrSettings> | null | undefined): BurrSettings {
@@ -82,6 +97,7 @@ export function sanitizeSettings(raw: Partial<BurrSettings> | null | undefined):
 			WEAK_THRESHOLD_RANGE.max,
 		),
 		weakDisabled: Array.isArray(merged.weakDisabled) ? merged.weakDisabled.filter((id) => typeof id === "string") : [],
+		ignoredProblems: sanitizeIgnored(merged.ignoredProblems),
 		weakNote: String(merged.weakNote ?? "").trim() || DEFAULT_WEAK_NOTE,
 		extraIgnoredWords: String(merged.extraIgnoredWords ?? ""),
 		includedFolders: String(merged.includedFolders ?? ""),

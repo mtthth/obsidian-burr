@@ -27,7 +27,10 @@ export default class BurrPlugin extends Plugin {
 	async onload() {
 		this.settings = sanitizeSettings(await this.loadData());
 
-		this.registerEditorExtension(burrHighlighter(() => this.settings, (view) => this.isExcluded(view), () => this.lexicon));
+		this.registerEditorExtension(burrHighlighter(() => this.settings, (view) => this.isExcluded(view), () => this.lexicon, (view) => {
+			const file = view.state.field(editorInfoField, false)?.file;
+			return file ? this.ignoredProblems(file.path) : new Set<string>();
+		}));
 
 		this.registerView(PRIORITIES_VIEW, (leaf) => new PrioritiesView(leaf, this));
 		this.addRibbonIcon("list-ordered", "Priorités de Burr", () => void this.openPriorities());
@@ -113,6 +116,12 @@ export default class BurrPlugin extends Plugin {
 		this.registerEvent(
 			this.app.vault.on("rename", (file, oldPath) => {
 				this.seen.delete(oldPath);
+				const ignored = this.settings.ignoredProblems[oldPath];
+				if (ignored) {
+					this.settings.ignoredProblems[file.path] = ignored;
+					delete this.settings.ignoredProblems[oldPath];
+					void this.saveData(this.settings);
+				}
 				if (file instanceof TFile) this.refreshEditors(file);
 			}),
 		);
@@ -137,6 +146,22 @@ export default class BurrPlugin extends Plugin {
 		if (view.file && this.exclusion(view.file) !== null) return null;
 		const text = view.editor.getValue();
 		return prioritize(text, analyze(text, settings, this.lexicon));
+	}
+
+	/** Les clés des problèmes que l'auteur a écartés du panneau pour cette note. */
+	ignoredProblems(path: string): ReadonlySet<string> {
+		return new Set(this.settings.ignoredProblems[path]);
+	}
+
+	/** Écarte (ou réintègre) un type de problème dans cette note : le panneau comme le surlignage de l'éditeur. */
+	async setProblemIgnored(path: string, key: string, ignored: boolean) {
+		const others = (this.settings.ignoredProblems[path] ?? []).filter((k) => k !== key);
+		const keys = ignored ? [...others, key] : others;
+		if (keys.length > 0) this.settings.ignoredProblems[path] = keys;
+		else delete this.settings.ignoredProblems[path];
+		await this.saveData(this.settings);
+		const file = this.app.vault.getAbstractFileByPath(path);
+		this.refreshEditors(file instanceof TFile ? file : undefined);
 	}
 
 	/** Montre le panneau des priorités dans la barre latérale droite (le crée au besoin). */
@@ -270,11 +295,15 @@ export default class BurrPlugin extends Plugin {
 		setting?.openTabById(this.manifest.id);
 	}
 
-	/** Relance l'analyse dans les éditeurs ouverts : tous, ou ceux d'une seule note. */
-	private refreshEditors(only?: TFile) {
+	private refreshPriorities() {
 		for (const leaf of this.app.workspace.getLeavesOfType(PRIORITIES_VIEW)) {
 			if (leaf.view instanceof PrioritiesView) leaf.view.refresh();
 		}
+	}
+
+	/** Relance l'analyse dans les éditeurs ouverts : tous, ou ceux d'une seule note. */
+	private refreshEditors(only?: TFile) {
+		this.refreshPriorities();
 		this.app.workspace.iterateAllLeaves((leaf) => {
 			if (!(leaf.view instanceof MarkdownView)) return;
 			if (only && leaf.view.file !== only) return;

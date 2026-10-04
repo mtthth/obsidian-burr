@@ -36,3 +36,21 @@ test("les mots faibles d'un même paragraphe forment un problème, un autre para
 test("un texte sans signal ne donne aucun problème", () => {
 	assert.deepEqual(problems("Le soleil se lève sur la mer."), []);
 });
+
+test("la clé d'un problème tient d'une analyse à l'autre, même si le texte autour change", () => {
+	const keys = (text: string) => problems(text).map((p) => p.key);
+	const before = keys("Le chat dort. Le chat mange.");
+	const after = keys("Un mot de plus pour décaler. Le chat dort. Le chat mange.");
+	assert.deepEqual(before, after);
+	assert.ok(before.length > 0);
+});
+
+test("ignorer un type de problème le retire de l'analyse, et lui seul", () => {
+	const text = "Le chat dort. Le chat mange. La porte claque. La porte claque encore.";
+	const all = analyze(text, DEFAULT_SETTINGS);
+	const chat = problems(text).find((p) => p.words.includes("chat"));
+	assert.ok(chat);
+	const left = analyze(text, DEFAULT_SETTINGS, undefined, new Set([chat.key]));
+	assert.ok(left.length > 0 && left.length < all.length);
+	assert.ok(left.every((h) => !text.slice(h.from, h.to).toLowerCase().includes("chat")));
+});
