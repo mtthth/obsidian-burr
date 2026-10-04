@@ -41,6 +41,10 @@ test("les formes d'« être » et d'« avoir » sont des mots-outils", () => {
 	assert.deepEqual(words("Il était fatigué. Elle était partie. Ils avaient faim, elles avaient soif."), []);
 });
 
+test("« malgré » est un mot plein : sa reprise est signalée, même suivi d'un pronom", () => {
+	assert.deepEqual(words("Ils existent malgré moi. Leurs jours se poursuivent malgré moi."), ["malgré", "malgré"]);
+});
+
 test("les noms propres ne sont pas des répétitions", () => {
 	const text = "Alors Marie sourit. Marie regarda Marie.";
 	assert.deepEqual(words(text), []);

@@ -13,7 +13,7 @@ const WORDS = `
 	aucun aucune tout tous toute toutes même mêmes
 
 	dans par pour sur sous avec sans chez vers entre contre depuis pendant
-	devant derrière avant après selon malgré parmi dès jusque jusqu durant
+	devant derrière avant après selon parmi dès jusque jusqu durant
 	hors envers
 
 	mais donc car que qui quoi dont où comme quand lorsque lorsqu puisque
