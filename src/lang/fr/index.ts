@@ -40,6 +40,11 @@ export const french: Language = {
 	id: "fr",
 	label: "Français",
 	stopwords: FRENCH_STOPWORDS,
+	// « Je sais que tu veux que je sois… » : les « que » en chaîne alourdissent la phrase.
+	crowded: new Map([
+		["que", "que"],
+		["qu", "que"],
+	]),
 	stem,
 	lemma: (word) => IRREGULAR_VERB_FORMS.get(word),
 	altStem,

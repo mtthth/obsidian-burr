@@ -12,6 +12,10 @@ export const ECHO = "echo";
  */
 const RARITY_LABELS = ["très rare", "rare", "peu courant"];
 
+/** Un mot-outil qui s'enchaîne (« que … que … que ») : au plus ce nombre de mots entre deux emplois, et ce nombre d'emplois au moins. */
+const CROWD_STEP = 10;
+const CROWD_MIN = 3;
+
 /** En dessous, un mot n'est jamais signalé (eau, mer, or, air passent déjà à trois lettres). */
 const MIN_WORD_LENGTH = 3;
 /** Les racines très courtes (« tel ») rapprochent des mots qui n'ont rien à voir. */
@@ -157,6 +161,8 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 	// répondent) ; sans stemming, sa forme.
 	const wordFamily = (index: number): string => {
 		const word = tokens[index].norm;
+		const crowded = language.crowded?.get(word);
+		if (crowded !== undefined) return crowded;
 		if (settings.useStemming) {
 			const lemma = language.lemma?.(word);
 			if (lemma !== undefined) return lemma;
@@ -187,6 +193,29 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 			raiseWord(previous, level, i, true);
 		}
 		lastSeen.set(word, i);
+	}
+
+	// 1 bis. Mots-outils en chaîne : jamais signalés seuls, mais trois « que » en quelques mots, si.
+	// Une suite d'emplois séparés de CROWD_STEP mots au plus, d'au moins CROWD_MIN emplois, est surlignée.
+	if (settings.enabled && language.crowded) {
+		const crowded = language.crowded;
+		const runs = new Map<string, number[]>();
+		const close = (run: number[]) => {
+			if (run.length < CROWD_MIN) return;
+			const level = run.length >= 5 ? 3 : run.length === 4 ? 2 : 1;
+			run.forEach((index, k) => raiseWord(index, level, run[k + 1] ?? run[k - 1], true));
+		};
+		for (let i = 0; i < count; i++) {
+			const key = kind[i] === FUNCTION ? crowded.get(tokens[i].norm) : undefined;
+			if (key === undefined) continue;
+			const run = runs.get(key);
+			if (run && i - run[run.length - 1] <= CROWD_STEP) run.push(i);
+			else {
+				if (run) close(run);
+				runs.set(key, [i]);
+			}
+		}
+		for (const run of runs.values()) close(run);
 	}
 
 	// 2. Même racine, forme différente. Un mot peut avoir deux racines (« mangeons » :

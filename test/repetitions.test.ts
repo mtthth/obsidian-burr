@@ -252,3 +252,12 @@ test("un texte vide ou sans mots ne plante pas", () => {
 	assert.deepEqual(highlighted(""), []);
 	assert.deepEqual(highlighted("...  ---  \n\n"), []);
 });
+
+test("des « que » en chaîne sont signalés, même s'ils sont des mots-outils", () => {
+	const text = "Tu refuses, parce que ce masque je l’ai construit et que je sais que tu veux que je sois seul à le voir.";
+	assert.deepEqual(words(text), ["que", "que", "que", "que"]);
+});
+
+test("deux « que » dans une phrase passent", () => {
+	assert.deepEqual(words("Je sais que tu veux que je parte."), []);
+});

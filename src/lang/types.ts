@@ -25,6 +25,11 @@ export interface Language {
 	readonly label: string;
 	/** Mots-outils, en minuscules NFC : jamais signalés comme répétitions. */
 	readonly stopwords: ReadonlySet<string>;
+	/**
+	 * Mots-outils que l'on signale tout de même quand ils s'enchaînent (« que … que … que ») :
+	 * chacun donne la forme qui réunit ses variantes (« qu' » -> « que »).
+	 */
+	readonly crowded?: ReadonlyMap<string, string>;
 	/** Racine d'un mot (minuscules NFC, sans apostrophe) : rapproche regardait / regarda. */
 	stem(word: string): string;
 	/**

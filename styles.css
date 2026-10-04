@@ -186,11 +186,24 @@
 	font-size: var(--font-ui-smaller);
 }
 
-/* Le passage que l'on vient de choisir dans le panneau : un cadre rouge creux, bien visible. */
+/* Le passage que l'on vient de choisir dans le panneau : un rectangle rouge creux de 5 px, qui clignote. */
 .burr-focus {
-	outline: 2px solid var(--color-red, #e93147);
+	outline: 5px solid var(--color-red, #e93147);
 	outline-offset: 1px;
 	border-radius: 2px;
+	animation: burr-blink 1s step-end infinite;
+}
+
+@keyframes burr-blink {
+	50% {
+		outline-color: transparent;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.burr-focus {
+		animation: none;
+	}
 }
 
 .burr-priorities-header {
