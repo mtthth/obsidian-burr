@@ -195,23 +195,52 @@ function jumpTo(view: EditorView, target: Span) {
 }
 
 /** La phrase de l'infobulle ; son passage lié (« 12 mots plus haut ») mène à l'autre occurrence. */
-function renderExplanation(view: EditorView, { text, link }: Explanation, target: Span | undefined): HTMLElement {
+function renderExplanation(
+	view: EditorView,
+	{ text, link }: Explanation,
+	target: Span | undefined,
+	current: Span,
+	occurrences: readonly Span[],
+): HTMLElement {
 	const doc = view.dom.ownerDocument;
 	const dom = doc.createElement("div");
 	dom.className = "burr-tooltip";
-	if (!link || !target) {
-		dom.textContent = text;
-		return dom;
-	}
-	const jump = doc.createElement("span");
-	jump.className = "burr-jump";
-	jump.textContent = text.slice(link[0], link[1]);
 	// Sans cela, le clic ôterait le focus à l'éditeur avant de sauter.
-	jump.addEventListener("mousedown", (event) => event.preventDefault());
-	jump.addEventListener("click", () => jumpTo(view, target));
-	dom.append(text.slice(0, link[0]), jump, text.slice(link[1]));
+	const clickable = (label: string, span: Span) => {
+		const jump = doc.createElement("span");
+		jump.className = "burr-jump";
+		jump.textContent = label;
+		jump.addEventListener("mousedown", (event) => event.preventDefault());
+		jump.addEventListener("click", () => jumpTo(view, span));
+		return jump;
+	};
+	const sentence = doc.createElement("div");
+	if (link && target) sentence.append(text.slice(0, link[0]), clickable(text.slice(link[0], link[1]), target), text.slice(link[1]));
+	else sentence.textContent = text;
+	dom.append(sentence);
+
+	// Au-delà de deux passages, le nombre et la liste (mot et ligne), chacun menant à son passage.
+	if (occurrences.length > 2) {
+		const list = doc.createElement("div");
+		list.className = "burr-occurrences";
+		list.append(`${occurrences.length} occurrences : `);
+		occurrences.slice(0, MAX_LISTED).forEach((span, i) => {
+			if (i > 0) list.append(" · ");
+			const label = `${view.state.sliceDoc(span.from, span.to)} (l. ${view.state.doc.lineAt(span.from).number})`;
+			if (span.from === current.from) {
+				const here = doc.createElement("strong");
+				here.textContent = label;
+				list.append(here);
+			} else list.append(clickable(label, span));
+		});
+		if (occurrences.length > MAX_LISTED) list.append(" …");
+		dom.append(list);
+	}
 	return dom;
 }
+
+/** Au plus ce nombre de passages listés dans l'infobulle. */
+const MAX_LISTED = 12;
 
 /**
  * Au survol d'un passage surligné, dit ce qui ne va pas. Les plages ne se
@@ -239,7 +268,8 @@ const explanation = hoverTooltip(
 		};
 		if (target) target = current(target);
 		// Les autres passages du problème survolé ; à défaut, la seule cible.
-		const others = problem ? problem.map(current).filter((span) => span.from !== from) : target ? [target] : [];
+		const occurrences = problem ? problem.map(current) : [];
+		const others = problem ? occurrences.filter((span) => span.from !== from) : target ? [target] : [];
 		return {
 			pos: from,
 			end: to,
@@ -248,7 +278,7 @@ const explanation = hoverTooltip(
 				// Marginal Notes, s'il est là, repère ces passages dans sa minipage tant que l'infobulle reste ouverte.
 				const point = (ranges: Span[]) => editor.dom.dispatchEvent(new CustomEvent("burr:point", { detail: { ranges } }));
 				point([{ from, to }, ...others]);
-				return { dom: renderExplanation(editor, explain(), target), destroy: () => point([]) };
+				return { dom: renderExplanation(editor, explain(), target, { from, to }, occurrences), destroy: () => point([]) };
 			},
 		};
 	},

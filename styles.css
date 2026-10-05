@@ -120,6 +120,14 @@
 	line-height: 1.4;
 }
 
+/* Le nombre de passages du problème et leur liste, sous la phrase. */
+.burr-occurrences {
+	margin-top: 4px;
+	padding-top: 4px;
+	border-top: 1px solid var(--background-modifier-border);
+	color: var(--text-muted);
+}
+
 /* La distance (« 12 mots plus haut ») : un clic mène à l'autre occurrence. */
 .burr-jump {
 	color: var(--text-accent);
