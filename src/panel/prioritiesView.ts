@@ -135,7 +135,7 @@ export class PrioritiesView extends ItemView {
 		const item = list.createDiv({ cls: `burr-priority burr-priority-${problem.category}` });
 		const head = item.createDiv({ cls: "burr-priority-head" });
 		head.createSpan({ cls: "burr-priority-score", text: formatScore(problem.score) });
-		const title = problem.words.map((word) => `« ${word} »`).join(", ") || (CATEGORY_LABELS[problem.category] ?? problem.category);
+		const title = problem.words.map((word) => `« ${word} »`).join(", ") || (CATEGORY_LABELS[problem.category] ?? problem.category);
 		const count = problem.spans.length > 2 || problem.words.length > 1 ? ` ×${problem.spans.length}` : "";
 		head.createSpan({ cls: "burr-priority-title", text: title + count });
 		item.createDiv({ cls: "burr-priority-detail", text: problem.detail });

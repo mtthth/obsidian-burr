@@ -75,7 +75,7 @@ test("un mot déjà surligné de près n'est pas souligné en plus ; le suivant,
 		highlights.map((h) => h.category),
 		[REPETITION, REPETITION, ECHO],
 	);
-	assert.equal(highlights[2].explain().text, "« chatoyant », mot très rare, apparaît déjà 503 mots plus haut.");
+	assert.equal(highlights[2].explain().text, "« chatoyant », mot très rare, apparaît déjà 503 mots plus haut.");
 	// Même mot, même famille, donc même couleur, qu'il soit surligné ou souligné.
 	assert.equal(new Set(highlights.map((h) => h.family)).size, 1);
 });
@@ -92,8 +92,8 @@ test("l'infobulle dit où est l'autre emploi, milliers compris", () => {
 	assert.deepEqual(
 		run(text).map((h) => h.explain().text),
 		[
-			"« chatoyant », mot très rare, revient 2\u202f003 mots plus loin.",
-			"« chatoyant », mot très rare, apparaît déjà 2\u202f003 mots plus haut.",
+			"« chatoyant », mot très rare, revient 2\u202f003 mots plus loin.",
+			"« chatoyant », mot très rare, apparaît déjà 2\u202f003 mots plus haut.",
 		],
 	);
 });
@@ -103,8 +103,8 @@ test("deux formes d'un même mot rare se répondent, et l'infobulle les nomme", 
 	assert.deepEqual(
 		run(text).map((h) => h.explain().text),
 		[
-			"« chatoyant », mot très rare, revient sous la forme « chatoyaient » 303 mots plus loin.",
-			"« chatoyaient », mot très rare, reprend « chatoyant » 303 mots plus haut.",
+			"« chatoyant », mot très rare, revient sous la forme « chatoyaient » 303 mots plus loin.",
+			"« chatoyaient », mot très rare, reprend « chatoyant » 303 mots plus haut.",
 		],
 	);
 	assert.deepEqual(echoes(text, { useStemming: false }), []);
@@ -130,7 +130,7 @@ test("le seuil de rareté est réglable, et plus le mot est rare, plus la vague 
 		["crépuscule", 1],
 		["palimpseste", 3],
 	]);
-	assert.match(run(text, { echoRarity: 3 })[1].explain().text, /^« crépuscule », mot peu courant,/);
+	assert.match(run(text, { echoRarity: 3 })[1].explain().text, /^« crépuscule », mot peu courant,/);
 });
 
 test("la portée est réglable ; 0, c'est tout le document", () => {

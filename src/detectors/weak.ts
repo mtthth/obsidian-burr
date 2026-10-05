@@ -78,7 +78,7 @@ function detect({ text, tokens, language, settings, lexicon }: DetectionInput): 
 			intensity: intensityFor(count, threshold),
 			severity: SEVERITY[intensityFor(count, threshold)],
 			group: `faible:${family.id}:${where}`,
-			explain: () => ({ text: `« ${text.slice(from, to)} » — ${family.label} : ${count} dans ce paragraphe.` }),
+			explain: () => ({ text: `« ${text.slice(from, to)} » — ${family.label} : ${count} dans ce paragraphe.` }),
 		});
 	}
 	return highlights;

@@ -133,25 +133,25 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 	const explainWord = (index: number, other: number, same: boolean) => (): Explanation => {
 		const before = other < index;
 		const place = where(Math.abs(index - other), before);
-		if (same) return sentence(`« ${textOf(index, index)} » ${before ? "apparaît déjà" : "revient"} `, place, ".");
+		if (same) return sentence(`« ${textOf(index, index)} » ${before ? "apparaît déjà" : "revient"} `, place, ".");
 		// Deux formes d'un verbe irrégulier n'ont pas de racine commune : on nomme l'infinitif.
 		const lemma = language.lemma?.(tokens[index].norm);
 		if (lemma !== undefined && lemma === language.lemma?.(tokens[other].norm)) {
-			return sentence(`« ${textOf(index, index)} » et « ${textOf(other, other)} » sont deux formes de « ${lemma} » (`, place, ").");
+			return sentence(`« ${textOf(index, index)} » et « ${textOf(other, other)} » sont deux formes de « ${lemma} » (`, place, ").");
 		}
-		return sentence(`« ${textOf(index, index)} » a la même racine que « ${textOf(other, other)} » (`, place, ").");
+		return sentence(`« ${textOf(index, index)} » a la même racine que « ${textOf(other, other)} » (`, place, ").");
 	};
 	const explainPhrase = (start: number, other: number, size: number) => (): Explanation => {
 		const before = other < start;
 		const place = where(Math.abs(start - other), before);
-		return sentence(`L'expression « ${textOf(start, start + size - 1)} » ${before ? "apparaît déjà" : "revient"} `, place, ".");
+		return sentence(`L'expression « ${textOf(start, start + size - 1)} » ${before ? "apparaît déjà" : "revient"} `, place, ".");
 	};
 	const explainEcho = (index: number, other: number, commonness: number) => (): Explanation => {
 		const before = other < index;
 		const place = where(Math.abs(index - other), before);
-		const word = `« ${textOf(index, index)} », mot ${RARITY_LABELS[commonness]},`;
+		const word = `« ${textOf(index, index)} », mot ${RARITY_LABELS[commonness]},`;
 		if (tokens[index].norm === tokens[other].norm) return sentence(`${word} ${before ? "apparaît déjà" : "revient"} `, place, ".");
-		const form = `« ${textOf(other, other)} »`;
+		const form = `« ${textOf(other, other)} »`;
 		return sentence(before ? `${word} reprend ${form} ` : `${word} revient sous la forme ${form} `, place, ".");
 	};
 
@@ -414,7 +414,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 				explain: () => {
 					const before = other < start;
 					const place = where(Math.abs(start - other), before);
-					return sentence(`L'expression « ${textOf(start, start + size - 1)} » ${before ? "apparaît déjà" : "revient"} `, place, ".");
+					return sentence(`L'expression « ${textOf(start, start + size - 1)} » ${before ? "apparaît déjà" : "revient"} `, place, ".");
 				},
 			});
 			i += size;

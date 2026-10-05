@@ -152,7 +152,7 @@ test("une couleur fixe par famille, dans l'ordre de la note, et une infobulle", 
 	const found = analyze("très, assez, presque, lentement, doucement, calmement.", { ...DEFAULT_SETTINGS, ...ALONE }).filter((h) => h.category === WEAK);
 	assert.equal(new Set(found.slice(0, 3).map((h) => h.color)).size, 1);
 	assert.notEqual(found[0].color, found[3].color);
-	assert.equal(found[0].explain().text, "« très » — Intensifs et atténuateurs : 3 dans ce paragraphe.");
+	assert.equal(found[0].explain().text, "« très » — Intensifs et atténuateurs : 3 dans ce paragraphe.");
 });
 
 test("l'intensité suit l'accumulation", () => {

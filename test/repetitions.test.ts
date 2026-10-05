@@ -96,16 +96,16 @@ test("un verbe rapproché par sa seconde racine partage la famille (la couleur) 
 test("au milieu d'une série, l'infobulle d'une première personne du pluriel parle de l'occurrence la plus proche", () => {
 	const text = "Nous mangeons. Ombre lueur brume. Il faut manger. Sable cendre écume argile givre. Nous mangeons.";
 	assert.deepEqual(explanations(text), [
-		["mangeons", "« mangeons » revient 13 mots plus loin."],
-		["manger", "« manger » a la même racine que « mangeons » (6 mots plus haut)."],
-		["mangeons", "« mangeons » apparaît déjà 13 mots plus haut."],
+		["mangeons", "« mangeons » revient 13 mots plus loin."],
+		["manger", "« manger » a la même racine que « mangeons » (6 mots plus haut)."],
+		["mangeons", "« mangeons » apparaît déjà 13 mots plus haut."],
 	]);
 });
 
 test("l'infobulle d'une première personne du pluriel nomme l'infinitif", () => {
 	assert.deepEqual(explanations("Nous mangeons le pain. Il faut manger le fromage."), [
-		["mangeons", "« mangeons » a la même racine que « manger » (5 mots plus loin)."],
-		["manger", "« manger » a la même racine que « mangeons » (5 mots plus haut)."],
+		["mangeons", "« mangeons » a la même racine que « manger » (5 mots plus loin)."],
+		["manger", "« manger » a la même racine que « mangeons » (5 mots plus haut)."],
 	]);
 });
 
@@ -136,8 +136,8 @@ test("un verbe irrégulier garde le lien que le stemmer faisait avec un nom de m
 
 test("l'infobulle de deux formes d'un verbe irrégulier nomme l'infinitif", () => {
 	assert.deepEqual(explanations("Nous irons demain. Vous allez au marché."), [
-		["irons", "« irons » et « allez » sont deux formes de « aller » (3 mots plus loin)."],
-		["allez", "« allez » et « irons » sont deux formes de « aller » (3 mots plus haut)."],
+		["irons", "« irons » et « allez » sont deux formes de « aller » (3 mots plus loin)."],
+		["allez", "« allez » et « irons » sont deux formes de « aller » (3 mots plus haut)."],
 	]);
 });
 
@@ -220,31 +220,31 @@ test("une expression répétée a sa famille, distincte de celle des mots qu'ell
 
 test("l'infobulle d'un mot répété dit où est l'autre occurrence", () => {
 	assert.deepEqual(explanations(`Un chien. ${filler(10)} Un chien.`), [
-		["chien", "« chien » revient 12 mots plus loin."],
-		["chien", "« chien » apparaît déjà 12 mots plus haut."],
+		["chien", "« chien » revient 12 mots plus loin."],
+		["chien", "« chien » apparaît déjà 12 mots plus haut."],
 	]);
-	assert.deepEqual(explanations("Une porte porte close."), [["porte", "« porte » revient juste après."], ["porte", "« porte » apparaît déjà juste avant."]]);
+	assert.deepEqual(explanations("Une porte porte close."), [["porte", "« porte » revient juste après."], ["porte", "« porte » apparaît déjà juste avant."]]);
 });
 
 test("l'infobulle d'un mot au milieu d'une série parle de l'occurrence la plus proche", () => {
 	const text = `Un chien. ${filler(30)} Un chien. ombre lueur brume sable Un chien.`;
 	const [first, middle, last] = explanations(text).map(([, message]) => message);
-	assert.equal(first, "« chien » revient 32 mots plus loin.");
-	assert.equal(middle, "« chien » revient 6 mots plus loin.");
-	assert.equal(last, "« chien » apparaît déjà 6 mots plus haut.");
+	assert.equal(first, "« chien » revient 32 mots plus loin.");
+	assert.equal(middle, "« chien » revient 6 mots plus loin.");
+	assert.equal(last, "« chien » apparaît déjà 6 mots plus haut.");
 });
 
 test("l'infobulle d'une autre forme du même mot nomme l'autre forme", () => {
 	assert.deepEqual(explanations("Il regardait la mer. Elle regarda le ciel."), [
-		["regardait", "« regardait » a la même racine que « regarda » (4 mots plus loin)."],
-		["regarda", "« regarda » a la même racine que « regardait » (4 mots plus haut)."],
+		["regardait", "« regardait » a la même racine que « regarda » (4 mots plus loin)."],
+		["regarda", "« regarda » a la même racine que « regardait » (4 mots plus haut)."],
 	]);
 });
 
 test("l'infobulle d'une expression la cite en entier", () => {
 	assert.deepEqual(explanations("Il mangea tout de même la soupe. Elle but tout de même le vin."), [
-		["tout de même", "L'expression « tout de même » revient 7 mots plus loin."],
-		["tout de même", "L'expression « tout de même » apparaît déjà 7 mots plus haut."],
+		["tout de même", "L'expression « tout de même » revient 7 mots plus loin."],
+		["tout de même", "L'expression « tout de même » apparaît déjà 7 mots plus haut."],
 	]);
 });
 
