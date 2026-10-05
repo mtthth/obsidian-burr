@@ -332,7 +332,7 @@ export function burrHighlighter(
 			private run() {
 				this.timer = null;
 				const settings = getSettings();
-				const decorations = (settings.enabled || settings.echoes || settings.weakWords) && !isExcluded(this.view)
+				const decorations = (settings.enabled || settings.echoes || settings.weakWords || settings.openings) && !isExcluded(this.view)
 					? buildDecorations(this.view.state.doc.toString(), settings, this.colors, getLexicon(), getIgnored(this.view))
 					: Decoration.none;
 				this.view.dispatch({ effects: setHighlights.of(decorations) });

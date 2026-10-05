@@ -13,6 +13,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 	repetition: "Répétition",
 	echo: "Écho",
 	weak: "Mots faibles",
+	opening: "Débuts répétés",
 };
 
 /** Ce que le panneau demande au plugin : analyser une note, sans rien savoir de ses réglages. */

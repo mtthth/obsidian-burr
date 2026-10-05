@@ -19,6 +19,8 @@ export interface BurrSettings {
 	weakThreshold: number;
 	/** Les familles de mots faibles (leur identifiant) que l'on ne veut pas voir. */
 	weakDisabled: string[];
+	/** Signaler les débuts de phrase ou de paragraphe qui se répètent (« Il… Il… Elle… Il… »). */
+	openings: boolean;
 	/** Chemin de la note qui liste les mots faibles ; absente, les mots de la langue s'appliquent. */
 	weakNote: string;
 	/** Les problèmes écartés du panneau des priorités, par chemin de note (leur clé : voir `Problem.key`). */
@@ -55,6 +57,7 @@ export const DEFAULT_SETTINGS: BurrSettings = {
 	weakWords: true,
 	weakThreshold: 3,
 	weakDisabled: [],
+	openings: true,
 	weakNote: DEFAULT_WEAK_NOTE,
 	ignoredProblems: {},
 	ignoreProperNames: true,

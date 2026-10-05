@@ -84,6 +84,35 @@
 	background-color: rgba(var(--burr-rgb), 0.18);
 }
 
+/*
+ * Débuts de phrase ou de paragraphe répétés : un trait plein sous le seul premier mot, dans la couleur fixe du signal.
+ * L'intensité (1 à 3) dit la longueur de la série : plus elle est longue, plus le trait est épais.
+ */
+.burr-opening {
+	--burr-rgb: 0, 150, 136;
+	text-decoration-line: underline;
+	text-decoration-style: solid;
+	text-decoration-skip-ink: none;
+	text-underline-offset: 3px;
+}
+
+.burr-opening-1 {
+	text-decoration-color: rgba(var(--burr-rgb), 0.7);
+	text-decoration-thickness: 2px;
+}
+
+.burr-opening-2 {
+	text-decoration-color: rgba(var(--burr-rgb), 0.9);
+	text-decoration-thickness: 3px;
+	background-color: rgba(var(--burr-rgb), 0.1);
+}
+
+.burr-opening-3 {
+	text-decoration-color: rgba(var(--burr-rgb), 1);
+	text-decoration-thickness: 3px;
+	background-color: rgba(var(--burr-rgb), 0.2);
+}
+
 .burr-color-0 { --burr-rgb: var(--color-orange-rgb, 236, 117, 0); }
 .burr-color-1 { --burr-rgb: var(--color-blue-rgb, 8, 109, 221); }
 .burr-color-2 { --burr-rgb: var(--color-green-rgb, 8, 185, 78); }
@@ -168,6 +197,10 @@
 
 .burr-priority-weak {
 	--burr-rgb: 135, 80, 249;
+}
+
+.burr-priority-opening {
+	--burr-rgb: 0, 150, 136;
 }
 
 .burr-priority-head {

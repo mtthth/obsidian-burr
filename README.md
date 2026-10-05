@@ -2,7 +2,7 @@
 
 Plugin [Obsidian](https://obsidian.md) de **relecture de prose littéraire en français**. Pendant que vous écrivez, il surligne les répétitions : le même mot trop près de lui-même, une expression qui revient, une forme du même verbe. Comme un burr (l'aspérité que l'on retire), il montre ce qui accroche ; c'est à vous de juger. **Le texte n'est jamais modifié.**
 
-Burr fait pour l'instant deux choses : la détection automatique des répétitions, et le repérage des mots faibles quand ils s'accumulent. D'autres détecteurs (débuts de phrase, rythme) viendront s'y ajouter.
+Burr fait pour l'instant trois choses : la détection automatique des répétitions, le repérage des débuts de phrase qui se répètent, et celui des mots faibles quand ils s'accumulent. D'autres détecteurs (rythme) viendront s'y ajouter.
 
 ## Ce que fait le plugin
 
@@ -32,6 +32,24 @@ Un mot rare se remarque : *chatoyant* employé au chapitre 1 se lit encore comme
 - **Au survol**, l'infobulle dit où est l'autre emploi : « *chatoyant*, mot très rare, apparaît déjà 2 960 mots plus haut », « *chatoyaient*, mot très rare, reprend *chatoyant* 303 mots plus haut ».
 - **Jamais en double.** Un mot déjà surligné comme répétition proche n'est pas souligné en plus ; l'emploi suivant, s'il est lointain, l'est.
 - Les mêmes filtres s'appliquent : mots-outils, noms propres, dialogues en option. Un mot rare qui est le sujet même du texte (*harpon* dans une histoire de baleinier) s'écarte avec « Mots à ignorer en plus ».
+
+### Débuts de phrase répétés
+
+« Il ouvrit la porte. Il entra. Elle sourit. Il s'assit. » Aucun mot n'est répété de loin, mais le lecteur entend une litanie. Ce signal porte sur une **position** précise du texte : Burr souligne d'un **trait plein** le seul premier mot, pas la phrase.
+
+- **Phrases : trois sur cinq.** Dès que trois phrases parmi cinq consécutives commencent de la même façon, leurs débuts sont soulignés. Un intrus (« Elle » parmi des « Il ») ne casse pas la série, et elle se prolonge tant que le motif revient. Le trait s'épaissit à partir de quatre, puis de cinq débuts.
+- **Paragraphes : trois de suite.** Trois paragraphes de prose consécutifs qui commencent par le même mot sont soulignés, avec un trait déjà marqué. Les répliques de dialogue ne comptent pas et ne coupent pas la série ; un titre, une liste, une citation ou une séparation de scène (`***`) la coupent. Un début de paragraphe signalé comme tel n'est pas signalé en plus comme début de phrase.
+- **Des groupes de mots comptent pour un seul :**
+  - *Sujet de 3ᵉ personne* : il, elle, on, ils, elles.
+  - *Narrateur* : je, j'. *Nous, tu, vous*.
+  - *Articles définis* : le, la, les, l'. *Articles indéfinis* : un, une, des.
+  - *Ce* : ce, cet, cette, ces, c', ça, cela, ceci.
+  - *Possessifs* : son, sa, ses, leur, mon, ma, ton, notre, votre…
+  - *Enchaînement* : puis, ensuite, alors.
+  - Tout autre mot (« Et », « Soudain », un prénom…) ne compte que contre lui-même, sans tenir compte de la casse ni des accents.
+- **Découpage des phrases.** Une phrase commence après `.`, `!`, `?` ou `…` si le mot suivant prend une majuscule, et à chaque début de ligne. Un deux-points ou une virgule ne finissent pas la phrase, pas plus que le point de « M. », « Mme » ou d'une initiale (« J. Dupont »). Les titres, listes et citations n'ouvrent pas de phrase.
+- **Au survol** : « 3 phrases sur 4 commencent par « il » ou « elle ». » La liste des passages de la série est dans l'infobulle, et la série forme un seul problème dans le panneau Priorités.
+- Les mêmes filtres s'appliquent : frontmatter, code, commentaires, dialogues en option. Une anaphore voulue (« Il pleuvait. Il pleuvait. Il pleuvait. ») se met de côté avec « Ignorer ce type de problème dans cette note », dans le panneau.
 
 ### Mots faibles
 
@@ -82,6 +100,7 @@ La liste des mots courants, qui sert à juger de la rareté, pèse l'essentiel d
 | Mots rares repris de loin | Souligne d'une vague les mots rares qui reviennent au-delà de la fenêtre. |
 | Mots jugés rares | Très rares seulement, rares (par défaut) ou peu courants. |
 | Portée des mots rares | 1 000, 2 000, 5 000 (par défaut) ou 10 000 mots, ou tout le document. |
+| Débuts de phrase répétés | Souligne le premier mot quand trois phrases sur cinq, ou trois paragraphes de prose de suite, commencent de la même façon. |
 | Mots faibles | Active le soulignement des familles de mots faibles qui s'accumulent. |
 | Seuil des mots faibles | Occurrences d'une famille, dans un même paragraphe, à partir desquelles elle est soulignée (1 à 6, 3 par défaut). |
 | *(une ligne par famille)* | Active ou désactive chaque famille de mots faibles. |
@@ -95,14 +114,15 @@ La liste des mots courants, qui sert à juger de la rareté, pèse l'essentiel d
 ## Commande
 
 - **Afficher ou masquer les répétitions** : bascule le surlignage des répétitions par proximité.
+- **Afficher ou masquer les débuts de phrase répétés** : bascule le soulignement des débuts de phrase et de paragraphe répétés.
 - **Afficher ou masquer les mots faibles** : bascule le soulignement des mots faibles.
 - **Ouvrir la note des mots faibles (la créer si besoin)** : ouvre la note de mots, ou la crée avec les mots par défaut.
 - **Burr : ignorer cette note** / **Burr : réactiver pour cette note** : dans le menu du clic droit, pose ou retire la balise `burr-ignorer` dans le YAML de la note.
-- **Options de Burr** : dans le même menu, un sous-menu bascule indépendamment le surlignage des répétitions, celui des mots rares repris de loin et celui des mots faibles, et propose un lien direct vers les réglages du plugin.
+- **Options de Burr** : dans le même menu, un sous-menu bascule indépendamment le surlignage des répétitions, celui des mots rares repris de loin, celui des débuts de phrase répétés et celui des mots faibles, et propose un lien direct vers les réglages du plugin.
 
 ## Langue
 
-Burr traite le **français** uniquement, et tout document est vu comme du français. Le code est déjà prévu pour qu'un document puisse avoir sa propre langue : tout ce qui en dépend (mots-outils, stemmer, marques de dialogue et d'ouverture de phrase, mots faibles par défaut et conjugaison) vit dans un objet `Language`, et la langue d'un document se décide en un seul endroit (`resolveLanguage`, dans [src/lang/index.ts](src/lang/index.ts)). Il n'y a pas encore de sélecteur.
+Burr traite le **français** uniquement, et tout document est vu comme du français. Le code est déjà prévu pour qu'un document puisse avoir sa propre langue : tout ce qui en dépend (mots-outils, stemmer, marques de dialogue et d'ouverture de phrase, groupes de débuts de phrase, mots faibles par défaut et conjugaison) vit dans un objet `Language`, et la langue d'un document se décide en un seul endroit (`resolveLanguage`, dans [src/lang/index.ts](src/lang/index.ts)). Il n'y a pas encore de sélecteur.
 
 ## Installation
 

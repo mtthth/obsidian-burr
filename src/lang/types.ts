@@ -13,6 +13,22 @@ export interface WeakSupport {
 	verbForms(infinitive: string): ReadonlySet<string> | undefined;
 }
 
+/** Des mots qui ouvrent une phrase de la même façon (« il », « elle », « on »). */
+export interface OpeningGroup {
+	/** Identifie le groupe ; ne sert qu'à comparer. */
+	readonly id: string;
+	/** Les mots du groupe, en minuscules NFC, tels que le tokenizer les coupe (« j' » donne « j »). */
+	readonly words: readonly string[];
+}
+
+/** Ce que la langue apporte au détecteur de débuts de phrase. */
+export interface OpeningSupport {
+	/** Groupes de mots comptés pour un seul ; tout autre mot ne compte que contre lui-même. */
+	readonly groups: readonly OpeningGroup[];
+	/** Abréviations (minuscules NFC, sans point) après lesquelles un point ne finit pas la phrase. */
+	readonly abbreviations: ReadonlySet<string>;
+}
+
 /**
  * Ce qui dépend de la langue du document. Le reste du plugin (tokenizer,
  * détecteurs, éditeur) n'en sait rien : ajouter une langue, c'est écrire un
@@ -54,6 +70,8 @@ export interface Language {
 	commonness?(word: string): Commonness;
 	/** Mots faibles (intensifs, verbes ternes…) : sans cela, ce détecteur ne signale rien. */
 	readonly weak?: WeakSupport;
+	/** Débuts de phrase et de paragraphe répétés : sans cela, ce détecteur ne signale rien. */
+	readonly openings?: OpeningSupport;
 	/** Motifs (drapeau `g`) des répliques de dialogue, ignorées si l'option est activée. */
 	readonly dialogue: readonly RegExp[];
 	/**

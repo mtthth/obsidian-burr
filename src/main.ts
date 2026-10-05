@@ -61,6 +61,16 @@ export default class BurrPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "toggle-openings",
+			name: "Afficher ou masquer les débuts de phrase répétés",
+			callback: async () => {
+				this.settings.openings = !this.settings.openings;
+				await this.saveSettings();
+				new Notice(this.settings.openings ? "Débuts de phrase surlignés" : "Débuts de phrase masqués");
+			},
+		});
+
+		this.addCommand({
 			id: "open-weak-words-note",
 			name: "Ouvrir la note des mots faibles (la créer si besoin)",
 			callback: () => this.openWeakWordsNote(),
@@ -142,7 +152,7 @@ export default class BurrPlugin extends Plugin {
 	/** Les problèmes d'une note, du plus grave au moins grave (voir `priorities.ts`). Même règle que l'éditeur pour ce qui est laissé de côté. */
 	problemsOf(view: MarkdownView): Problem[] | null | undefined {
 		const { settings } = this;
-		if (!(settings.enabled || settings.echoes || settings.weakWords)) return undefined;
+		if (!(settings.enabled || settings.echoes || settings.weakWords || settings.openings)) return undefined;
 		if (view.file && this.exclusion(view.file) !== null) return null;
 		const text = view.editor.getValue();
 		return prioritize(text, analyze(text, settings, this.lexicon));
@@ -265,6 +275,15 @@ export default class BurrPlugin extends Plugin {
 					.setChecked(this.settings.weakWords)
 					.onClick(async () => {
 						this.settings.weakWords = !this.settings.weakWords;
+						await this.saveSettings();
+					}),
+			)
+			.addItem((item) =>
+				item
+					.setTitle("Débuts de phrase répétés")
+					.setChecked(this.settings.openings)
+					.onClick(async () => {
+						this.settings.openings = !this.settings.openings;
 						await this.saveSettings();
 					}),
 			)

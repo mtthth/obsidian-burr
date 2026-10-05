@@ -12,7 +12,7 @@ function filler(count: number): string {
 	return Array.from({ length: count }, (_, i) => `mot${letter(i)}${letter(Math.floor(i / 26))}${letter(Math.floor(i / 676))}x`).join(" ");
 }
 
-const run = (text: string, overrides: Partial<BurrSettings> = {}) => analyze(text, { ...DEFAULT_SETTINGS, ...overrides });
+const run = (text: string, overrides: Partial<BurrSettings> = {}) => analyze(text, { ...DEFAULT_SETTINGS, openings: false, ...overrides });
 
 /** Les passages soulignés comme mots rares repris de loin, avec leur intensité. */
 function echoes(text: string, overrides: Partial<BurrSettings> = {}): Array<[string, number]> {

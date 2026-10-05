@@ -101,6 +101,19 @@ export class BurrSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
+			.setName("Débuts de phrase répétés")
+			.setDesc(
+				"Souligne le premier mot quand trois phrases sur cinq commencent de la même façon (« Il… Il… Elle… Il… » : il, elle et on comptent pour un seul mot), " +
+					"ou quand trois paragraphes de prose de suite commencent par le même mot. Les répliques de dialogue ne comptent pas dans les paragraphes.",
+			)
+			.addToggle((toggle) =>
+				toggle.setValue(settings.openings).onChange(async (value) => {
+					settings.openings = value;
+					await save();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName("Mots faibles")
 			.setDesc(
 				"Souligne d'un pointillé les intensifs (très, assez), les adverbes en -ment, les verbes ternes (faire, mettre), les mots vagues et les béquilles narratives (soudain, puis), " +

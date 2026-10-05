@@ -8,7 +8,7 @@ import type { BurrSettings } from "../src/settings.ts";
 import { defaultLexicon, parseLexicon } from "../src/weak/lexicon.ts";
 
 /** Sans répétitions : un mot répété de près est surligné comme tel, et cède la place (voir le test dédié). */
-const ALONE: Partial<BurrSettings> = { enabled: false, echoes: false };
+const ALONE: Partial<BurrSettings> = { enabled: false, echoes: false, openings: false };
 
 /** Les passages signalés comme mots faibles, avec leur famille (sans le préfixe). */
 function weak(text: string, overrides: Partial<BurrSettings> = {}, note?: string): Array<[string, string]> {
