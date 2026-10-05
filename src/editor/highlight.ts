@@ -6,6 +6,7 @@ import { analyze } from "../analyze.ts";
 import { PALETTE_SIZE, assignColors } from "../colors.ts";
 import type { ColorMemory } from "../colors.ts";
 import type { Explanation, Highlight } from "../detectors/types.ts";
+import { prioritize } from "../priorities.ts";
 import type { BurrSettings } from "../settings.ts";
 import type { Lexicon } from "../weak/lexicon.ts";
 
@@ -41,6 +42,8 @@ interface Hovered {
 	to: number;
 	explain: Highlight["explain"];
 	target?: Span;
+	/** Tous les passages de son problème, positions de l'analyse. */
+	problem?: Span[];
 }
 
 interface Highlights {
@@ -75,12 +78,18 @@ function buildDecorations(
 ): DecorationSet {
 	const highlights = analyze(text, settings, lexicon, ignored);
 	const colors = assignColors(highlights, memory);
+	// Tous les passages du problème de chacun (un mot repris cinq fois : les cinq), pour les repérer ensemble au survol.
+	const problemOf = new Map<number, Span[]>();
+	for (const problem of prioritize(text, highlights)) {
+		for (const span of problem.spans) problemOf.set(span.from, problem.spans);
+	}
 	const ranges = highlights.map((h, i) =>
-		// La décoration porte aussi l'explication et sa cible, que l'infobulle retrouve par sa position.
+		// La décoration porte aussi l'explication, sa cible et son problème, que l'infobulle retrouve par sa position.
 		Decoration.mark({
 			class: classesFor(h.category)[colors[i]][h.intensity - 1],
 			explain: h.explain,
 			target: h.target,
+			problem: problemOf.get(h.from),
 		}).range(h.from, h.to),
 	);
 	return Decoration.set(ranges, true);
@@ -215,18 +224,22 @@ const explanation = hoverTooltip(
 		decorations.between(pos, pos, (from, to, value) => {
 			// À la limite de deux passages, le pointeur est sur celui du côté où il se trouve.
 			if ((from === pos && side < 0) || (to === pos && side > 0)) return;
-			hovered = { from, to, explain: value.spec.explain, target: value.spec.target };
+			hovered = { from, to, explain: value.spec.explain, target: value.spec.target, problem: value.spec.problem };
 			return false;
 		});
 		if (!hovered) return null;
-		const { from, to, explain } = hovered as Hovered;
+		const { from, to, explain, problem } = hovered as Hovered;
 		let target = (hovered as Hovered).target;
-		// La cible date de l'analyse ; on la ramène au texte actuel. L'infobulle se ferme
-		// à la moindre frappe (`hideOnChange`), elle reste donc juste tant qu'elle est ouverte.
-		if (target && since) {
-			const start = since.mapPos(target.from, 1);
-			target = { from: start, to: Math.max(start, since.mapPos(target.to, -1)) };
-		}
+		// Les positions de l'analyse sont ramenées au texte actuel. L'infobulle se ferme
+		// à la moindre frappe (`hideOnChange`), elles restent donc justes tant qu'elle est ouverte.
+		const current = (span: Span): Span => {
+			if (!since) return span;
+			const start = since.mapPos(span.from, 1);
+			return { from: start, to: Math.max(start, since.mapPos(span.to, -1)) };
+		};
+		if (target) target = current(target);
+		// Les autres passages du problème survolé ; à défaut, la seule cible.
+		const others = problem ? problem.map(current).filter((span) => span.from !== from) : target ? [target] : [];
 		return {
 			pos: from,
 			end: to,
@@ -234,7 +247,7 @@ const explanation = hoverTooltip(
 			create: (editor) => {
 				// Marginal Notes, s'il est là, repère ces passages dans sa minipage tant que l'infobulle reste ouverte.
 				const point = (ranges: Span[]) => editor.dom.dispatchEvent(new CustomEvent("burr:point", { detail: { ranges } }));
-				point(target ? [{ from, to }, target] : [{ from, to }]);
+				point([{ from, to }, ...others]);
 				return { dom: renderExplanation(editor, explain(), target), destroy: () => point([]) };
 			},
 		};

@@ -216,7 +216,7 @@ export class BurrSettingTab extends PluginSettingTab {
 			});
 
 		containerEl.createEl("p", {
-			text: "Des fonctionnalités supplémentaires sont disponibles quand Marginal Notes est installé : au survol d'une répétition, ses deux occurrences sont repérées dans la minipage.",
+			text: "Des fonctionnalités supplémentaires sont disponibles quand Marginal Notes est installé : au survol d'une répétition, toutes ses occurrences sont repérées dans la minipage.",
 			cls: "setting-item-description",
 		});
 	}
