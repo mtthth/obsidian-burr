@@ -302,13 +302,10 @@
 }
 
 /*
- * A wider, coloured text caret (see editor/caret.ts). The native caret, and CodeMirror's if the editor
- * draws one, are hidden in this editor only: child selectors leave nested editors (table cells) alone.
+ * A wider, coloured text caret (see editor/caret.ts). The native caret is hidden by an inline style;
+ * CodeMirror's, should the editor draw one, is hidden here. Its layers are children of the scroller:
+ * child selectors leave nested editors (table cells) alone.
  */
-.burr-caret-on > .cm-scroller > .cm-content {
-	caret-color: transparent !important;
-}
-
 .burr-caret-on > .cm-scroller > .cm-cursorLayer {
 	display: none;
 }

@@ -42,5 +42,8 @@ export function burrCaret(getSettings: () => BurrSettings): Extension {
 		return { class: "burr-caret-on", style: `--burr-caret-width: ${caretWidth}px;${color}` };
 	});
 
-	return [attributes, caretLayer];
+	// Inline, on this editor's own content: it beats the theme's rule, and leaves nested editors (table cells) alone.
+	const hideNative = EditorView.contentAttributes.of(() => (getSettings().caret ? { style: "caret-color: transparent" } : null));
+
+	return [attributes, hideNative, caretLayer];
 }
