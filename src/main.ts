@@ -1,10 +1,12 @@
 import type { EditorView } from "@codemirror/view";
 import { MarkdownView, Menu, Notice, Plugin, TFile, editorInfoField, normalizePath } from "obsidian";
 import type { MenuItem } from "obsidian";
-import { analyze } from "./analyze.ts";
+import { noteProblems } from "./analyze.ts";
+import type { IgnoredProblem } from "./analyze.ts";
 import { burrHighlighter, refreshHighlights } from "./editor/highlight.ts";
+import { NOTHING_IGNORED, coversProblem } from "./ignore.ts";
+import type { Ignored, IgnoredPassage } from "./ignore.ts";
 import { PRIORITIES_VIEW, PrioritiesView } from "./panel/prioritiesView.ts";
-import { prioritize } from "./priorities.ts";
 import type { Problem } from "./priorities.ts";
 import { addIgnoreTag, exclusionOf, removeIgnoreTag } from "./scope.ts";
 import type { Exclusion } from "./scope.ts";
@@ -27,10 +29,24 @@ export default class BurrPlugin extends Plugin {
 	async onload() {
 		this.settings = sanitizeSettings(await this.loadData());
 
-		this.registerEditorExtension(burrHighlighter(() => this.settings, (view) => this.isExcluded(view), () => this.lexicon, (view) => {
-			const file = view.state.field(editorInfoField, false)?.file;
-			return file ? this.ignoredProblems(file.path) : new Set<string>();
-		}));
+		const fileOf = (view: EditorView) => view.state.field(editorInfoField, false)?.file ?? null;
+		this.registerEditorExtension(
+			burrHighlighter(
+				() => this.settings,
+				(view) => this.isExcluded(view),
+				() => this.lexicon,
+				(view) => {
+					const file = fileOf(view);
+					return file ? this.ignoredIn(file.path) : NOTHING_IGNORED;
+				},
+				(view) => {
+					const path = fileOf(view)?.path;
+					if (!path) return null;
+					return (passage, scope) =>
+						void (scope === "note" ? this.setProblemIgnored(path, passage.key, true) : this.setPassageIgnored(path, passage, true));
+				},
+			),
+		);
 
 		this.registerView(PRIORITIES_VIEW, (leaf) => new PrioritiesView(leaf, this));
 		this.addRibbonIcon("list-ordered", "Priorités de Burr", () => void this.openPriorities());
@@ -127,11 +143,16 @@ export default class BurrPlugin extends Plugin {
 			this.app.vault.on("rename", (file, oldPath) => {
 				this.seen.delete(oldPath);
 				const ignored = this.settings.ignoredProblems[oldPath];
+				const passages = this.settings.ignoredPassages[oldPath];
 				if (ignored) {
 					this.settings.ignoredProblems[file.path] = ignored;
 					delete this.settings.ignoredProblems[oldPath];
-					void this.saveData(this.settings);
 				}
+				if (passages) {
+					this.settings.ignoredPassages[file.path] = passages;
+					delete this.settings.ignoredPassages[oldPath];
+				}
+				if (ignored || passages) void this.saveData(this.settings);
 				if (file instanceof TFile) this.refreshEditors(file);
 			}),
 		);
@@ -149,18 +170,31 @@ export default class BurrPlugin extends Plugin {
 		return this.lexicon ?? defaultLexicon(resolveLanguage({ text: "" }));
 	}
 
-	/** Les problèmes d'une note, du plus grave au moins grave (voir `priorities.ts`). Même règle que l'éditeur pour ce qui est laissé de côté. */
-	problemsOf(view: MarkdownView): Problem[] | null | undefined {
+	/**
+	 * Les problèmes d'une note, du plus grave au moins grave (voir `priorities.ts`), tels que l'éditeur les montre,
+	 * et ceux que l'auteur a écartés. Même règle que l'éditeur pour ce qui est laissé de côté.
+	 */
+	problemsOf(view: MarkdownView): { active: Problem[]; ignored: IgnoredProblem[] } | null | undefined {
 		const { settings } = this;
 		if (!(settings.enabled || settings.echoes || settings.weakWords || settings.openings)) return undefined;
 		if (view.file && this.exclusion(view.file) !== null) return null;
-		const text = view.editor.getValue();
-		return prioritize(text, analyze(text, settings, this.lexicon));
+		return noteProblems(view.editor.getValue(), settings, this.lexicon, view.file ? this.ignoredIn(view.file.path) : NOTHING_IGNORED);
 	}
 
-	/** Les clés des problèmes que l'auteur a écartés du panneau pour cette note. */
-	ignoredProblems(path: string): ReadonlySet<string> {
-		return new Set(this.settings.ignoredProblems[path]);
+	/** What the author set aside in this note: problem types, and problems in one place. */
+	ignoredIn(path: string): Ignored {
+		return { keys: new Set(this.settings.ignoredProblems[path]), passages: this.settings.ignoredPassages[path] ?? [] };
+	}
+
+	/** Ignores a problem in this place only (or brings back every ignored passage it shares). */
+	async setPassageIgnored(path: string, passage: IgnoredPassage, ignored: boolean) {
+		const others = (this.settings.ignoredPassages[path] ?? []).filter((p) => !coversProblem(p, passage));
+		const passages = ignored ? [...others, { key: passage.key, anchors: [...passage.anchors] }] : others;
+		if (passages.length > 0) this.settings.ignoredPassages[path] = passages;
+		else delete this.settings.ignoredPassages[path];
+		await this.saveData(this.settings);
+		const file = this.app.vault.getAbstractFileByPath(path);
+		this.refreshEditors(file instanceof TFile ? file : undefined);
 	}
 
 	/** Écarte (ou réintègre) un type de problème dans cette note : le panneau comme le surlignage de l'éditeur. */

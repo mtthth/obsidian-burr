@@ -1,7 +1,10 @@
 import type { EditorView } from "@codemirror/view";
 import { ItemView, MarkdownView, Menu } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
+import type { IgnoredProblem } from "../analyze.ts";
 import { showPassage } from "../editor/highlight.ts";
+import type { IgnoredPassage } from "../ignore.ts";
+import { formatScore } from "../priorities.ts";
 import type { Problem } from "../priorities.ts";
 
 export const PRIORITIES_VIEW = "burr-priorities";
@@ -18,11 +21,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 /** Ce que le panneau demande au plugin : analyser une note, sans rien savoir de ses réglages. */
 export interface PrioritiesSource {
-	/** Les problèmes de la note ; `null` si elle est laissée de côté (dossier, balise), `undefined` si tout est désactivé. */
-	problemsOf(view: MarkdownView): Problem[] | null | undefined;
-	/** Les clés des problèmes écartés du panneau pour cette note. */
-	ignoredProblems(path: string): ReadonlySet<string>;
+	/**
+	 * Les problèmes de la note, ceux que montre l'éditeur et ceux que l'auteur a écartés ;
+	 * `null` si elle est laissée de côté (dossier, balise), `undefined` si tout est désactivé.
+	 */
+	problemsOf(view: MarkdownView): { active: Problem[]; ignored: IgnoredProblem[] } | null | undefined;
 	setProblemIgnored(path: string, key: string, ignored: boolean): Promise<void>;
+	setPassageIgnored(path: string, passage: IgnoredPassage, ignored: boolean): Promise<void>;
 }
 
 /** Le panneau « Priorités » : les passages les plus graves de la note ouverte, un clic mène au texte. */
@@ -97,10 +102,8 @@ export class PrioritiesView extends ItemView {
 		const problems = this.plugin.problemsOf(view);
 		if (problems === undefined) return this.message(root, "Tous les signaux de Burr sont désactivés.");
 		if (problems === null) return this.message(root, "Cette note est laissée de côté par Burr.");
-		if (problems.length === 0) return this.message(root, "Rien à signaler dans cette note.");
-		const ignoredKeys = view.file ? this.plugin.ignoredProblems(view.file.path) : new Set<string>();
-		const ignored = problems.filter((problem) => ignoredKeys.has(problem.key));
-		const active = problems.filter((problem) => !ignoredKeys.has(problem.key));
+		const { active, ignored } = problems;
+		if (active.length === 0 && ignored.length === 0) return this.message(root, "Rien à signaler dans cette note.");
 		// Plus rien d'ignoré à revoir : on revient à la liste.
 		if (ignored.length === 0) this.showIgnored = false;
 
@@ -125,14 +128,15 @@ export class PrioritiesView extends ItemView {
 		if (shown.length === 0) return this.message(root, "Rien à signaler dans cette note.");
 
 		const list = root.createDiv({ cls: "burr-priorities-list" });
-		for (const problem of shown) this.renderProblem(list, view, problem, this.showIgnored);
+		for (const problem of shown) this.renderProblem(list, view, problem);
 	}
 
 	private message(root: HTMLElement, text: string) {
 		root.createDiv({ cls: "burr-priorities-empty", text });
 	}
 
-	private renderProblem(list: HTMLElement, view: MarkdownView, problem: Problem, ignored: boolean) {
+	private renderProblem(list: HTMLElement, view: MarkdownView, problem: Problem | IgnoredProblem) {
+		const scope = "scope" in problem ? problem.scope : null;
 		const item = list.createDiv({ cls: `burr-priority burr-priority-${problem.category}` });
 		const head = item.createDiv({ cls: "burr-priority-head" });
 		head.createSpan({ cls: "burr-priority-score", text: formatScore(problem.score) });
@@ -140,6 +144,7 @@ export class PrioritiesView extends ItemView {
 		const count = problem.spans.length > 2 || problem.words.length > 1 ? ` ×${problem.spans.length}` : "";
 		head.createSpan({ cls: "burr-priority-title", text: title + count });
 		item.createDiv({ cls: "burr-priority-detail", text: problem.detail });
+		if (scope) item.createDiv({ cls: "burr-priority-scope", text: scope === "note" ? "Ignoré dans toute la note" : "Ignoré à cet endroit" });
 
 		// Un clic mène au premier passage ; les suivants parcourent les autres, puis reviennent au premier.
 		let next = 0;
@@ -162,19 +167,33 @@ export class PrioritiesView extends ItemView {
 			event.preventDefault();
 			const path = view.file?.path;
 			if (!path) return;
-			new Menu()
-				.addItem((entry) =>
+			const menu = new Menu();
+			if (scope)
+				menu.addItem((entry) =>
 					entry
-						.setTitle(ignored ? "Ne plus ignorer" : "Ignorer ce type de problème dans cette note")
-						.setIcon(ignored ? "eye" : "eye-off")
-						.onClick(() => void this.plugin.setProblemIgnored(path, problem.key, !ignored)),
-				)
-				.showAtMouseEvent(event);
+						.setTitle("Ne plus ignorer")
+						.setIcon("eye")
+						.onClick(() =>
+							void (scope === "note"
+								? this.plugin.setProblemIgnored(path, problem.key, false)
+								: this.plugin.setPassageIgnored(path, problem, false)),
+						),
+				);
+			else
+				menu
+					.addItem((entry) =>
+						entry
+							.setTitle("Ignorer à cet endroit")
+							.setIcon("eye-off")
+							.onClick(() => void this.plugin.setPassageIgnored(path, problem, true)),
+					)
+					.addItem((entry) =>
+						entry
+							.setTitle("Ignorer dans toute la note")
+							.setIcon("eye-off")
+							.onClick(() => void this.plugin.setProblemIgnored(path, problem.key, true)),
+					);
+			menu.showAtMouseEvent(event);
 		});
 	}
-}
-
-/** « 8 », « 1,5 » : une décimale seulement quand il y en a une. */
-function formatScore(score: number): string {
-	return String(Math.round(score * 10) / 10).replace(".", ",");
 }

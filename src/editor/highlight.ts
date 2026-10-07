@@ -6,7 +6,8 @@ import { analyze } from "../analyze.ts";
 import { PALETTE_SIZE, assignColors } from "../colors.ts";
 import type { ColorMemory } from "../colors.ts";
 import type { Explanation, Highlight } from "../detectors/types.ts";
-import { prioritize } from "../priorities.ts";
+import type { Ignored, IgnoredPassage } from "../ignore.ts";
+import { formatRank, formatScore, prioritize } from "../priorities.ts";
 import type { BurrSettings } from "../settings.ts";
 import type { Lexicon } from "../weak/lexicon.ts";
 
@@ -36,15 +37,29 @@ function classesFor(category: string): string[][] {
 
 type Span = NonNullable<Highlight["target"]>;
 
+/** The problem a highlight belongs to, as the tooltip shows it. */
+interface ProblemInfo {
+	/** Tous les passages du problème, positions de l'analyse. */
+	spans: Span[];
+	key: string;
+	anchors: string[];
+	score: number;
+	/** Its place among the note's problems (1: the most serious), out of `total`. */
+	rank: number;
+	total: number;
+}
+
 /** Le passage sous le pointeur, avec de quoi écrire son infobulle. */
 interface Hovered {
 	from: number;
 	to: number;
 	explain: Highlight["explain"];
 	target?: Span;
-	/** Tous les passages de son problème, positions de l'analyse. */
-	problem?: Span[];
+	problem?: ProblemInfo;
 }
+
+/** Sets a problem aside, in this place or in the whole note; null when the editor shows no note. */
+type IgnoreAction = ((passage: IgnoredPassage, scope: "passage" | "note") => void) | null;
 
 interface Highlights {
 	decorations: DecorationSet;
@@ -74,15 +89,18 @@ function buildDecorations(
 	settings: BurrSettings,
 	memory: ColorMemory,
 	lexicon: Lexicon | undefined,
-	ignored: ReadonlySet<string>,
+	ignored: Ignored,
 ): DecorationSet {
 	const highlights = analyze(text, settings, lexicon, ignored);
 	const colors = assignColors(highlights, memory);
-	// Tous les passages du problème de chacun (un mot repris cinq fois : les cinq), pour les repérer ensemble au survol.
-	const problemOf = new Map<number, Span[]>();
-	for (const problem of prioritize(text, highlights)) {
-		for (const span of problem.spans) problemOf.set(span.from, problem.spans);
-	}
+	// Tous les passages du problème de chacun (un mot repris cinq fois : les cinq), pour les repérer ensemble au survol,
+	// with its score and rank, the same as in the panel.
+	const problemOf = new Map<number, ProblemInfo>();
+	const problems = prioritize(text, highlights);
+	problems.forEach(({ spans, key, anchors, score }, i) => {
+		const info: ProblemInfo = { spans, key, anchors, score, rank: i + 1, total: problems.length };
+		for (const span of spans) problemOf.set(span.from, info);
+	});
 	const ranges = highlights.map((h, i) =>
 		// La décoration porte aussi l'explication, sa cible et son problème, que l'infobulle retrouve par sa position.
 		Decoration.mark({
@@ -201,6 +219,8 @@ function renderExplanation(
 	target: Span | undefined,
 	current: Span,
 	occurrences: readonly Span[],
+	problem: ProblemInfo | undefined,
+	ignore: IgnoreAction,
 ): HTMLElement {
 	const doc = view.dom.ownerDocument;
 	const dom = doc.createElement("div");
@@ -236,6 +256,37 @@ function renderExplanation(
 		if (occurrences.length > MAX_LISTED) list.append(" …");
 		dom.append(list);
 	}
+
+	// Score and rank, the same as in the panel, and the buttons to set the problem aside.
+	if (problem) {
+		const footer = doc.createElement("div");
+		footer.className = "burr-tooltip-footer";
+		const score = doc.createElement("span");
+		score.className = "burr-tooltip-score";
+		score.textContent = `Gravité ${formatScore(problem.score)} · ${formatRank(problem.rank)} sur ${problem.total}`;
+		footer.append(score);
+		if (ignore) {
+			const passage: IgnoredPassage = { key: problem.key, anchors: problem.anchors };
+			const button = (label: string, title: string, scope: "passage" | "note") => {
+				const el = doc.createElement("button");
+				el.className = "burr-tooltip-ignore";
+				el.textContent = label;
+				el.title = title;
+				el.addEventListener("mousedown", (event) => event.preventDefault());
+				el.addEventListener("click", () => {
+					ignore(passage, scope);
+					// The refresh is no document change: `hideOnChange` would leave this tooltip open.
+					view.dispatch({ effects: closeHoverTooltips });
+				});
+				return el;
+			};
+			footer.append(
+				button("Ignorer ici", "Ne plus signaler ces passages ; le même mot répété ailleurs reste signalé", "passage"),
+				button("Dans toute la note", "Ne plus signaler ce type de problème nulle part dans cette note", "note"),
+			);
+		}
+		dom.append(footer);
+	}
 	return dom;
 }
 
@@ -246,55 +297,58 @@ const MAX_LISTED = 12;
  * Au survol d'un passage surligné, dit ce qui ne va pas. Les plages ne se
  * chevauchent pas ; la décoration suit le texte pendant la frappe, l'infobulle aussi.
  */
-const explanation = hoverTooltip(
-	(view, pos, side) => {
-		const { decorations, since } = view.state.field(highlightField);
-		let hovered = null as Hovered | null;
-		decorations.between(pos, pos, (from, to, value) => {
-			// À la limite de deux passages, le pointeur est sur celui du côté où il se trouve.
-			if ((from === pos && side < 0) || (to === pos && side > 0)) return;
-			hovered = { from, to, explain: value.spec.explain, target: value.spec.target, problem: value.spec.problem };
-			return false;
-		});
-		if (!hovered) return null;
-		const { from, to, explain, problem } = hovered as Hovered;
-		let target = (hovered as Hovered).target;
-		// Les positions de l'analyse sont ramenées au texte actuel. L'infobulle se ferme
-		// à la moindre frappe (`hideOnChange`), elles restent donc justes tant qu'elle est ouverte.
-		const current = (span: Span): Span => {
-			if (!since) return span;
-			const start = since.mapPos(span.from, 1);
-			return { from: start, to: Math.max(start, since.mapPos(span.to, -1)) };
-		};
-		if (target) target = current(target);
-		// Les autres passages du problème survolé ; à défaut, la seule cible.
-		const occurrences = problem ? problem.map(current) : [];
-		const others = problem ? occurrences.filter((span) => span.from !== from) : target ? [target] : [];
-		return {
-			pos: from,
-			end: to,
-			above: true,
-			create: (editor) => {
-				// Marginal Notes, s'il est là, repère ces passages dans sa minipage tant que l'infobulle reste ouverte.
-				const point = (ranges: Span[]) => editor.dom.dispatchEvent(new CustomEvent("burr:point", { detail: { ranges } }));
-				point([{ from, to }, ...others]);
-				return { dom: renderExplanation(editor, explain(), target, { from, to }, occurrences), destroy: () => point([]) };
-			},
-		};
-	},
-	{ hideOnChange: true },
-);
+const explanation = (getIgnore: (view: EditorView) => IgnoreAction) =>
+	hoverTooltip(
+		(view, pos, side) => {
+			const { decorations, since } = view.state.field(highlightField);
+			let hovered = null as Hovered | null;
+			decorations.between(pos, pos, (from, to, value) => {
+				// À la limite de deux passages, le pointeur est sur celui du côté où il se trouve.
+				if ((from === pos && side < 0) || (to === pos && side > 0)) return;
+				hovered = { from, to, explain: value.spec.explain, target: value.spec.target, problem: value.spec.problem };
+				return false;
+			});
+			if (!hovered) return null;
+			const { from, to, explain, problem } = hovered as Hovered;
+			let target = (hovered as Hovered).target;
+			// Les positions de l'analyse sont ramenées au texte actuel. L'infobulle se ferme
+			// à la moindre frappe (`hideOnChange`), elles restent donc justes tant qu'elle est ouverte.
+			const current = (span: Span): Span => {
+				if (!since) return span;
+				const start = since.mapPos(span.from, 1);
+				return { from: start, to: Math.max(start, since.mapPos(span.to, -1)) };
+			};
+			if (target) target = current(target);
+			// Les autres passages du problème survolé ; à défaut, la seule cible.
+			const occurrences = problem ? problem.spans.map(current) : [];
+			const others = problem ? occurrences.filter((span) => span.from !== from) : target ? [target] : [];
+			return {
+				pos: from,
+				end: to,
+				above: true,
+				create: (editor) => {
+					// Marginal Notes, s'il est là, repère ces passages dans sa minipage tant que l'infobulle reste ouverte.
+					const point = (ranges: Span[]) => editor.dom.dispatchEvent(new CustomEvent("burr:point", { detail: { ranges } }));
+					point([{ from, to }, ...others]);
+					const dom = renderExplanation(editor, explain(), target, { from, to }, occurrences, problem, getIgnore(editor));
+					return { dom, destroy: () => point([]) };
+				},
+			};
+		},
+		{ hideOnChange: true },
+	);
 
 /**
  * Surligne les répétitions du document, en mode source comme en aperçu en direct.
  * `isExcluded` dit si la note de cet éditeur est laissée de côté (dossier, balise du YAML) ;
- * `getIgnored` donne les types de problèmes que l'auteur a écartés pour cette note.
+ * `getIgnored` donne ce que l'auteur a écarté pour cette note ; `getIgnore`, de quoi écarter un problème depuis l'infobulle.
  */
 export function burrHighlighter(
 	getSettings: () => BurrSettings,
 	isExcluded: (view: EditorView) => boolean,
 	getLexicon: () => Lexicon | undefined,
-	getIgnored: (view: EditorView) => ReadonlySet<string>,
+	getIgnored: (view: EditorView) => Ignored,
+	getIgnore: (view: EditorView) => IgnoreAction,
 ): Extension {
 	const scheduler = ViewPlugin.fromClass(
 		class {
@@ -339,5 +393,5 @@ export function burrHighlighter(
 			}
 		},
 	);
-	return [highlightField, focusField, visibleHighlights, focusFrames, explanation, scheduler];
+	return [highlightField, focusField, visibleHighlights, focusFrames, explanation(getIgnore), scheduler];
 }

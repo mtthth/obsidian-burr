@@ -1,3 +1,5 @@
+import type { IgnoredPassage } from "./ignore.ts";
+
 export interface BurrSettings {
 	/** Surligner les répétitions dans l'éditeur. */
 	enabled: boolean;
@@ -25,6 +27,8 @@ export interface BurrSettings {
 	weakNote: string;
 	/** Les problèmes écartés du panneau des priorités, par chemin de note (leur clé : voir `Problem.key`). */
 	ignoredProblems: Record<string, string[]>;
+	/** Problems ignored in one place only, by note path (see `IgnoredPassage`). */
+	ignoredPassages: Record<string, IgnoredPassage[]>;
 	/** Ne jamais signaler un mot qui prend une majuscule en milieu de phrase. */
 	ignoreProperNames: boolean;
 	/** Laisser de côté les répliques de dialogue. */
@@ -60,6 +64,7 @@ export const DEFAULT_SETTINGS: BurrSettings = {
 	openings: true,
 	weakNote: DEFAULT_WEAK_NOTE,
 	ignoredProblems: {},
+	ignoredPassages: {},
 	ignoreProperNames: true,
 	ignoreDialogue: false,
 	extraIgnoredWords: "",
@@ -76,6 +81,21 @@ function sanitizeIgnored(raw: unknown): Record<string, string[]> {
 	for (const [path, keys] of Object.entries(raw)) {
 		if (!Array.isArray(keys)) continue;
 		const valid = keys.filter((key): key is string => typeof key === "string");
+		if (valid.length > 0) result[path] = valid;
+	}
+	return result;
+}
+
+/** The passages ignored in one place, as read from disk: a key and anchors, by note. */
+function sanitizePassages(raw: unknown): Record<string, IgnoredPassage[]> {
+	const result: Record<string, IgnoredPassage[]> = {};
+	if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return result;
+	for (const [path, passages] of Object.entries(raw)) {
+		if (!Array.isArray(passages)) continue;
+		const valid = passages
+			.filter((p): p is { key: string; anchors: unknown[] } => typeof p?.key === "string" && Array.isArray(p.anchors))
+			.map((p) => ({ key: p.key, anchors: p.anchors.filter((a): a is string => typeof a === "string") }))
+			.filter((p) => p.anchors.length > 0);
 		if (valid.length > 0) result[path] = valid;
 	}
 	return result;
@@ -101,6 +121,7 @@ export function sanitizeSettings(raw: Partial<BurrSettings> | null | undefined):
 		),
 		weakDisabled: Array.isArray(merged.weakDisabled) ? merged.weakDisabled.filter((id) => typeof id === "string") : [],
 		ignoredProblems: sanitizeIgnored(merged.ignoredProblems),
+		ignoredPassages: sanitizePassages(merged.ignoredPassages),
 		weakNote: String(merged.weakNote ?? "").trim() || DEFAULT_WEAK_NOTE,
 		extraIgnoredWords: String(merged.extraIgnoredWords ?? ""),
 		includedFolders: String(merged.includedFolders ?? ""),

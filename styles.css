@@ -157,6 +157,30 @@
 	color: var(--text-muted);
 }
 
+/* The problem's score and rank, and the buttons to ignore it. */
+.burr-tooltip-footer {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 6px;
+	align-items: center;
+	margin-top: 4px;
+	padding-top: 4px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.burr-tooltip-score {
+	margin-right: auto;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.burr-tooltip-ignore {
+	height: auto;
+	padding: 1px 6px;
+	font-size: inherit;
+	cursor: pointer;
+}
+
 /* La distance (« 12 mots plus haut ») : un clic mène à l'autre occurrence. */
 .burr-jump {
 	color: var(--text-accent);
@@ -219,6 +243,13 @@
 .burr-priority-title {
 	color: var(--text-normal);
 	font-weight: var(--font-medium);
+}
+
+.burr-priority-scope {
+	margin-top: var(--size-2-1);
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	font-style: italic;
 }
 
 .burr-priority-detail {

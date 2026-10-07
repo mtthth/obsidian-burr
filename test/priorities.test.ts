@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { analyze } from "../src/analyze.ts";
-import { prioritize } from "../src/priorities.ts";
+import { analyze, noteProblems } from "../src/analyze.ts";
+import { NOTHING_IGNORED } from "../src/ignore.ts";
+import { formatRank, prioritize } from "../src/priorities.ts";
 import { DEFAULT_SETTINGS } from "../src/settings.ts";
 
 const problems = (text: string) => prioritize(text, analyze(text, DEFAULT_SETTINGS));
@@ -50,7 +51,57 @@ test("ignorer un type de problème le retire de l'analyse, et lui seul", () => {
 	const all = analyze(text, DEFAULT_SETTINGS);
 	const chat = problems(text).find((p) => p.words.includes("chat"));
 	assert.ok(chat);
-	const left = analyze(text, DEFAULT_SETTINGS, undefined, new Set([chat.key]));
+	const left = analyze(text, DEFAULT_SETTINGS, undefined, { keys: new Set([chat.key]), passages: [] });
 	assert.ok(left.length > 0 && left.length < all.length);
 	assert.ok(left.every((h) => !text.slice(h.from, h.to).toLowerCase().includes("chat")));
+});
+
+// Two clusters of « trame », far enough apart (filler words) to be two problems.
+const filler = Array.from({ length: 120 }, (_, i) => `mot${i}`).join(" ");
+const twoClusters = `La trame avance. La trame recule. ${filler}. Une trame revient. Cette trame encore.`;
+const tramesIn = (text: string, ignored = NOTHING_IGNORED) =>
+	analyze(text, DEFAULT_SETTINGS, undefined, ignored).filter((h) => text.slice(h.from, h.to).toLowerCase() === "trame");
+
+test("ignorer un problème à cet endroit laisse le même mot répété ailleurs signalé", () => {
+	const clusters = problems(twoClusters).filter((p) => p.words.includes("trame"));
+	assert.equal(clusters.length, 2);
+	const first = clusters.find((p) => p.spans[0].from < 20);
+	assert.ok(first);
+	const left = tramesIn(twoClusters, { keys: new Set(), passages: [{ key: first.key, anchors: first.anchors }] });
+	assert.equal(left.length, 2);
+	assert.ok(left.every((h) => h.from > first.spans[1].to));
+});
+
+test("un passage ignoré le reste quand le texte change ailleurs", () => {
+	const first = problems(twoClusters).find((p) => p.words.includes("trame") && p.spans[0].from < 20);
+	assert.ok(first);
+	const ignored = { keys: new Set<string>(), passages: [{ key: first.key, anchors: first.anchors }] };
+	const edited = `Un paragraphe ajouté en tête.
+
+${twoClusters.replace("Une trame revient", "Une trame revient enfin")}`;
+	assert.equal(tramesIn(edited, ignored).length, 2);
+});
+
+test("une occurrence tapée près de passages ignorés reste signalée", () => {
+	const text = "La trame avance. La trame recule.";
+	const [problem] = problems(text);
+	const ignored = { keys: new Set<string>(), passages: [{ key: problem.key, anchors: problem.anchors }] };
+	assert.equal(tramesIn(text, ignored).length, 0);
+	assert.equal(tramesIn(`${text} Puis la trame tourne.`, ignored).length, 1);
+});
+
+test("les problèmes écartés sont rendus à part, avec leur portée", () => {
+	const text = "Le chat dort. Le chat mange. La porte claque. La porte claque encore.";
+	const [chat, porte] = ["chat", "porte"].map((w) => problems(text).find((p) => p.words.some((x) => x.includes(w))));
+	assert.ok(chat && porte);
+	const { active, ignored } = noteProblems(text, DEFAULT_SETTINGS, undefined, {
+		keys: new Set([chat.key]),
+		passages: [{ key: porte.key, anchors: porte.anchors }],
+	});
+	assert.deepEqual(ignored.map((p) => [p.key, p.scope]).sort(), [[chat.key, "note"], [porte.key, "passage"]].sort());
+	assert.ok(active.every((p) => p.key !== chat.key && p.key !== porte.key));
+});
+
+test("le rang s'écrit à la française", () => {
+	assert.deepEqual([1, 2, 41].map(formatRank), ["1er", "2e", "41e"]);
 });

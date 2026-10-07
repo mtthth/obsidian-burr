@@ -1,9 +1,5 @@
 import type { Highlight } from "./detectors/index.ts";
-
-/** Identifie un type de problème (catégorie et famille), d'une analyse à l'autre : ce que l'auteur ignore. */
-export function problemKey(highlight: Highlight): string {
-	return `${highlight.category}:${highlight.family}`;
-}
+import { anchorOf, problemKey } from "./ignore.ts";
 
 /** Un problème : les passages qui se répondent (un mot répété, un paragraphe chargé en mots faibles), et sa gravité. */
 export interface Problem {
@@ -14,6 +10,8 @@ export interface Problem {
 	category: string;
 	/** Les passages, dans l'ordre du texte. */
 	spans: Array<{ from: number; to: number }>;
+	/** Each passage's anchor (`anchorOf`), in the same order: what ignoring this problem in one place stores. */
+	anchors: string[];
 	/** Les mots concernés, sans doublon (« très », « assez »), dans l'ordre où ils apparaissent. */
 	words: string[];
 	/** Ce que dit l'infobulle du premier passage. */
@@ -69,11 +67,12 @@ export function prioritize(text: string, highlights: readonly Highlight[]): Prob
 		const root = find(i);
 		let problem = problems.get(root);
 		if (!problem) {
-			problem = { key: problemKey(h), score: 0, category: h.category, spans: [], words: [], detail: h.explain().text, first: h.from };
+			problem = { key: problemKey(h), score: 0, category: h.category, spans: [], anchors: [], words: [], detail: h.explain().text, first: h.from };
 			problems.set(root, problem);
 		}
 		problem.score += h.severity;
 		problem.spans.push({ from: h.from, to: h.to });
+		problem.anchors.push(anchorOf(text, h));
 		const word = text.slice(h.from, h.to).toLowerCase();
 		if (!problem.words.includes(word)) problem.words.push(word);
 	});
@@ -81,4 +80,14 @@ export function prioritize(text: string, highlights: readonly Highlight[]): Prob
 	return [...problems.values()]
 		.map(({ first: _first, ...problem }) => ({ ...problem, words: problem.words.length > MAX_WORDS ? [] : problem.words }))
 		.sort((a, b) => b.score - a.score || a.spans[0].from - b.spans[0].from);
+}
+
+/** « 8 », « 1,5 » : une décimale seulement quand il y en a une. */
+export function formatScore(score: number): string {
+	return String(Math.round(score * 10) / 10).replace(".", ",");
+}
+
+/** « 1er », « 3e » : a problem's place among the note's. */
+export function formatRank(rank: number): string {
+	return rank === 1 ? "1er" : `${rank}e`;
 }

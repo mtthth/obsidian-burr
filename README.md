@@ -49,7 +49,7 @@ Un mot rare se remarque : *chatoyant* employé au chapitre 1 se lit encore comme
   - Tout autre mot (« Et », « Soudain », un prénom…) ne compte que contre lui-même, sans tenir compte de la casse ni des accents.
 - **Découpage des phrases.** Une phrase commence après `.`, `!`, `?` ou `…` si le mot suivant prend une majuscule, et à chaque début de ligne. Un deux-points ou une virgule ne finissent pas la phrase, pas plus que le point de « M. », « Mme » ou d'une initiale (« J. Dupont »). Les titres, listes et citations n'ouvrent pas de phrase.
 - **Au survol** : « 3 phrases sur 4 commencent par « il » ou « elle ». » La liste des passages de la série est dans l'infobulle, et la série forme un seul problème dans le panneau Priorités.
-- Les mêmes filtres s'appliquent : frontmatter, code, commentaires, dialogues en option. Une anaphore voulue (« Il pleuvait. Il pleuvait. Il pleuvait. ») se met de côté avec « Ignorer ce type de problème dans cette note », dans le panneau.
+- Les mêmes filtres s'appliquent : frontmatter, code, commentaires, dialogues en option. Une anaphore voulue (« Il pleuvait. Il pleuvait. Il pleuvait. ») se met de côté avec « Ignorer à cet endroit », dans le panneau ou l'infobulle.
 
 ### Mots faibles
 
