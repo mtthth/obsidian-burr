@@ -1,7 +1,7 @@
 {
 	"id": "burr",
 	"name": "Burr",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"minAppVersion": "1.4.4",
 	"description": "Relecture de prose littéraire en français : surligne les répétitions pendant la frappe, sans rien remplacer.",
 	"author": "Matthieu Thomas (cidrolin)",

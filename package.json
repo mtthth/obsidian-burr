@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-burr",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Relecture de prose littéraire en français pour Obsidian : surligne les répétitions pendant la frappe",
 	"main": "main.js",
 	"scripts": {
