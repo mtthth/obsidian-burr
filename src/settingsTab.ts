@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type BurrPlugin from "./main.ts";
-import { DEFAULT_WEAK_NOTE, ECHO_REACHES, NGRAM_RANGE, WEAK_THRESHOLD_RANGE, WINDOW_RANGE } from "./settings.ts";
+import { CARET_WIDTH_RANGE, DEFAULT_WEAK_NOTE, ECHO_REACHES, NGRAM_RANGE, WEAK_THRESHOLD_RANGE, WINDOW_RANGE } from "./settings.ts";
 
 export class BurrSettingTab extends PluginSettingTab {
 	private plugin: BurrPlugin;
@@ -228,9 +228,68 @@ export class BurrSettingTab extends PluginSettingTab {
 				area.inputEl.rows = 3;
 			});
 
+		new Setting(containerEl).setName("Curseur").setHeading();
+
+		new Setting(containerEl)
+			.setName("Curseur plus visible")
+			.setDesc("Remplace le curseur de texte, dans toutes les notes, par un trait plus large et coloré, qui clignote.")
+			.addToggle((toggle) =>
+				toggle.setValue(settings.caret).onChange(async (value) => {
+					settings.caret = value;
+					await save();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Largeur du curseur")
+			.setDesc("En pixels.")
+			.addSlider((slider) =>
+				slider
+					.setLimits(CARET_WIDTH_RANGE.min, CARET_WIDTH_RANGE.max, 1)
+					.setValue(settings.caretWidth)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						settings.caretWidth = value;
+						await save();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Couleur du curseur")
+			.setDesc("Par défaut, la couleur d'accent du thème.")
+			.addColorPicker((picker) => {
+				// No colour chosen: the picker shows the theme's accent, which the caret then follows.
+				if (settings.caretColor) picker.setValue(settings.caretColor);
+				else {
+					const accent = themeAccent();
+					if (accent) picker.setValueHsl(accent);
+				}
+				picker.onChange(async (value) => {
+					settings.caretColor = value;
+					await save();
+				});
+			})
+			.addExtraButton((button) =>
+				button
+					.setIcon("rotate-ccw")
+					.setTooltip("Revenir à la couleur d'accent du thème")
+					.onClick(async () => {
+						settings.caretColor = "";
+						await save();
+						this.display();
+					}),
+			);
+
 		containerEl.createEl("p", {
 			text: "Des fonctionnalités supplémentaires sont disponibles quand Marginal Notes est installé : au survol d'une répétition, toutes ses occurrences sont repérées dans la minipage.",
 			cls: "setting-item-description",
 		});
 	}
+}
+
+/** The theme's accent colour, from the variables Obsidian sets on the body; null if a theme hides them. */
+function themeAccent(): { h: number; s: number; l: number } | null {
+	const style = getComputedStyle(document.body);
+	const [h, s, l] = ["--accent-h", "--accent-s", "--accent-l"].map((name) => parseFloat(style.getPropertyValue(name)));
+	return [h, s, l].some(Number.isNaN) ? null : { h, s, l };
 }

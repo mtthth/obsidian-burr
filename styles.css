@@ -300,3 +300,45 @@
 	padding: var(--size-2-1) var(--size-4-2);
 	font-size: var(--font-ui-smaller);
 }
+
+/*
+ * A wider, coloured text caret (see editor/caret.ts). The native caret, and CodeMirror's if the editor
+ * draws one, are hidden in this editor only: child selectors leave nested editors (table cells) alone.
+ */
+.burr-caret-on > .cm-scroller > .cm-content {
+	caret-color: transparent !important;
+}
+
+.burr-caret-on > .cm-scroller > .cm-cursorLayer {
+	display: none;
+}
+
+.burr-caret-layer {
+	pointer-events: none;
+	animation: steps(1) burr-caret-blink 1.2s infinite;
+}
+
+.burr-caret-layer > .burr-caret {
+	border-left: var(--burr-caret-width, 3px) solid var(--burr-caret-color, var(--color-accent, var(--text-accent)));
+	margin-left: calc(var(--burr-caret-width, 3px) / -2);
+	pointer-events: none;
+}
+
+/* Two identical animations, swapped on every move to restart the blink. */
+@keyframes burr-caret-blink {
+	50% {
+		opacity: 0;
+	}
+}
+
+@keyframes burr-caret-blink2 {
+	50% {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.burr-caret-layer {
+		animation-play-state: paused;
+	}
+}

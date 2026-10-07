@@ -3,6 +3,7 @@ import { MarkdownView, Menu, Notice, Plugin, TFile, editorInfoField, normalizePa
 import type { MenuItem } from "obsidian";
 import { noteProblems } from "./analyze.ts";
 import type { IgnoredProblem } from "./analyze.ts";
+import { burrCaret } from "./editor/caret.ts";
 import { burrHighlighter, refreshHighlights } from "./editor/highlight.ts";
 import { NOTHING_IGNORED, coversProblem } from "./ignore.ts";
 import type { Ignored, IgnoredPassage } from "./ignore.ts";
@@ -47,6 +48,7 @@ export default class BurrPlugin extends Plugin {
 				},
 			),
 		);
+		this.registerEditorExtension(burrCaret(() => this.settings));
 
 		this.registerView(PRIORITIES_VIEW, (leaf) => new PrioritiesView(leaf, this));
 		this.addRibbonIcon("list-ordered", "Priorités de Burr", () => void this.openPriorities());

@@ -39,12 +39,19 @@ export interface BurrSettings {
 	includedFolders: string;
 	/** Dossiers à ne jamais analyser, un par ligne. */
 	excludedFolders: string;
+	/** Draw a more visible text caret in every editor. */
+	caret: boolean;
+	/** Its width, in pixels. */
+	caretWidth: number;
+	/** Its colour (`#rrggbb`); empty: the theme's accent. */
+	caretColor: string;
 }
 
 export const WINDOW_RANGE = { min: 20, max: 200, step: 10 } as const;
 export const NGRAM_RANGE = { min: 1, max: 4 } as const;
 export const WEAK_THRESHOLD_RANGE = { min: 1, max: 6 } as const;
 export const DEFAULT_WEAK_NOTE = "mots-faibles.md";
+export const CARET_WIDTH_RANGE = { min: 1, max: 8 } as const;
 export const ECHO_RARITY_RANGE = { min: 1, max: 3 } as const;
 /** Les portées proposées pour les mots rares ; 0 : tout le document. */
 export const ECHO_REACHES: readonly number[] = [1000, 2000, 5000, 10000, 0];
@@ -70,6 +77,9 @@ export const DEFAULT_SETTINGS: BurrSettings = {
 	extraIgnoredWords: "",
 	includedFolders: "",
 	excludedFolders: "",
+	caret: true,
+	caretWidth: 3,
+	caretColor: "",
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
@@ -122,6 +132,8 @@ export function sanitizeSettings(raw: Partial<BurrSettings> | null | undefined):
 		weakDisabled: Array.isArray(merged.weakDisabled) ? merged.weakDisabled.filter((id) => typeof id === "string") : [],
 		ignoredProblems: sanitizeIgnored(merged.ignoredProblems),
 		ignoredPassages: sanitizePassages(merged.ignoredPassages),
+		caretWidth: clamp(Math.round(Number(merged.caretWidth)) || DEFAULT_SETTINGS.caretWidth, CARET_WIDTH_RANGE.min, CARET_WIDTH_RANGE.max),
+		caretColor: /^#[0-9a-f]{6}$/i.test(String(merged.caretColor)) ? String(merged.caretColor) : "",
 		weakNote: String(merged.weakNote ?? "").trim() || DEFAULT_WEAK_NOTE,
 		extraIgnoredWords: String(merged.extraIgnoredWords ?? ""),
 		includedFolders: String(merged.includedFolders ?? ""),
