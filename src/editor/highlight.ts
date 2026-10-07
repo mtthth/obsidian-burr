@@ -280,10 +280,14 @@ function renderExplanation(
 				});
 				return el;
 			};
-			footer.append(
+			// One group, kept whole: beside the score, or below it on the right.
+			const actions = doc.createElement("span");
+			actions.className = "burr-tooltip-actions";
+			actions.append(
 				button("Ignorer ici", "Ne plus signaler ces passages ; le même mot répété ailleurs reste signalé", "passage"),
 				button("Dans toute la note", "Ne plus signaler ce type de problème nulle part dans cette note", "note"),
 			);
+			footer.append(actions);
 		}
 		dom.append(footer);
 	}
