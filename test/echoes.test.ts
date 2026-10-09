@@ -168,6 +168,16 @@ test("une expression aux mots courants (« clin d'œil ») est soulignée quand 
 	assert.deepEqual(echoes(text, { echoes: false }), []);
 });
 
+test("une expression rare reprise sous une autre forme garde la couleur de sa famille", () => {
+	const text = `Il lui fit un clin d’œil complice. ${filler(300)} Elle répondit par des clins d’œil complices.`;
+	const found = run(text).filter((h) => h.category === ECHO);
+	assert.deepEqual(
+		found.map((h) => text.slice(h.from, h.to)),
+		["clin d’œil complice", "clins d’œil complices"],
+	);
+	assert.equal(found[0].family, found[1].family);
+});
+
 test("une expression qui en chevauche une autre est soulignée d'un bloc (« me fait un clin d'œil »)", () => {
 	const text = `Il me fait un clin d’œil. ${filler(500)} Elle me fait un clin d’œil.`;
 	assert.deepEqual(

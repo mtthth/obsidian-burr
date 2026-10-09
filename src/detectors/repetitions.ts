@@ -168,6 +168,15 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 		return word;
 	};
 
+	// Famille d'une expression rare reprise de loin : celle de chacun de ses mots pleins,
+	// pour que « clins d'œil » réponde à « clin d'œil » et en partage la couleur.
+	const phraseFamily = (first: number, last: number): string => {
+		const part = (index: number) => (kind[index] === FULL ? wordFamily(index) : tokens[index].norm);
+		let key = part(first);
+		for (let k = first + 1; k <= last; k++) key += " " + part(k);
+		return key;
+	};
+
 	// Les racines d'un mot, assez longues pour ne pas rapprocher n'importe quoi. L'infinitif
 	// d'un verbe irrégulier vient en premier : à distance égale, c'est lui qui relie.
 	const stemsOf = (word: string): string[] => {
@@ -317,10 +326,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 				}
 				if (blocked || full < 2 || rarest > settings.echoRarity) continue;
 
-				// Par famille, pour que « clins d'œil » réponde à « clin d'œil ».
-				const part = (index: number) => (kind[index] === FULL ? wordFamily(index) : tokens[index].norm);
-				let key = part(i);
-				for (let k = 1; k < size; k++) key += " " + part(i + k);
+				const key = phraseFamily(i, i + size - 1);
 				const previous = lastOfPhrase.get(key);
 				if (previous !== undefined && i - previous > reach && i - previous <= echoReach) {
 					for (const [start, other] of [
@@ -373,10 +379,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 				from: tokens[i].from,
 				to: tokens[i + size - 1].to,
 				category: ECHO,
-				family: tokens
-					.slice(i, i + size)
-					.map((t) => t.norm)
-					.join(" "),
+				family: phraseFamily(i, i + size - 1),
 				intensity: Math.max(1, 3 - echoPhraseRarity[i]) as Intensity,
 				target: spanOf(other, other + size - 1),
 				explain: () => {
