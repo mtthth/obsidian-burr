@@ -18,6 +18,14 @@ export interface Token {
 	 * entre eux. Deux mots de segments différents ne forment pas une expression.
 	 */
 	segment: number;
+	/**
+	 * Numéro de paragraphe. Un paragraphe s'arrête à une ligne sans mots (ligne blanche,
+	 * séparateur, zone ignorée), à un titre, un élément de liste ou une réplique, et au
+	 * retour à la ligne qui suit une fin de phrase. Un retour à la ligne au milieu d'une
+	 * phrase (texte coupé à la main) le continue : un paragraphe par ligne et un texte
+	 * coupé à la main sont compris tous deux.
+	 */
+	paragraph: number;
 }
 
 /**
@@ -31,6 +39,27 @@ export const WORD = /[\p{L}\p{N}\p{M}]+/gu;
 const HARD_BREAK = /[.!?…;:\n]/;
 const UPPERCASE_FIRST = /^\p{Lu}/u;
 
+/** Le début d'une ligne qui ouvre un bloc à part : titre, élément de liste, réplique, ligne de tableau. */
+const BLOCK_START = /^[ \t]*(?:>[ \t]*)*(?:#{1,6}(?:[ \t]|$)|[-*+][ \t]|\d+[.)][ \t]|[—–]|--|\|)/;
+/** Une ligne qui ne se continue pas sur la suivante : titre, ligne de tableau. */
+const WHOLE_LINE = /^[ \t]*(?:>[ \t]*)*(?:#{1,6}(?:[ \t]|$)|\|)/;
+/** Une fin de phrase en bout de ligne, guillemets, parenthèses et emphase fermants compris. */
+const SENTENCE_END = /[.!?…][\s»"”’')\]*_~=]*$/;
+
+/**
+ * Le mot qui suit `gap` ouvre-t-il un paragraphe ? `previousLine` est la ligne du mot
+ * précédent, de son début jusqu'à lui.
+ */
+function startsParagraph(gap: string, previousLine: string): boolean {
+	const first = gap.indexOf("\n");
+	if (first < 0) return false;
+	const last = gap.lastIndexOf("\n");
+	// Une ligne entière sans mots entre les deux : ligne blanche, séparateur, bloc ignoré.
+	if (first !== last) return true;
+	if (BLOCK_START.test(gap.slice(last + 1)) || WHOLE_LINE.test(previousLine)) return true;
+	return SENTENCE_END.test(gap.slice(0, first).split(MASK).join(""));
+}
+
 /**
  * Découpe le texte en mots, une seule fois pour tous les détecteurs. Les
  * frontmatter, blocs de code, commentaires, adresses (et dialogues en option)
@@ -42,7 +71,9 @@ export function tokenize(text: string, language: Language, options: IgnoreOption
 
 	const tokens: Token[] = [];
 	let segment = 0;
+	let paragraph = 0;
 	let previousEnd = -1;
+	let previousLineStart = 0;
 
 	for (const match of masked.matchAll(WORD)) {
 		const from = match.index as number;
@@ -52,6 +83,8 @@ export function tokenize(text: string, language: Language, options: IgnoreOption
 		const visible = gap.split(MASK).join("");
 
 		if (HARD_BREAK.test(gap) || gap.includes(MASK)) segment++;
+		const newline = gap.lastIndexOf("\n");
+		if (previousEnd >= 0 && newline >= 0 && startsParagraph(gap, masked.slice(previousLineStart, previousEnd))) paragraph++;
 
 		tokens.push({
 			from,
@@ -60,7 +93,11 @@ export function tokenize(text: string, language: Language, options: IgnoreOption
 			capitalized: UPPERCASE_FIRST.test(match[0]),
 			sentenceStart: HARD_BREAK.test(visible) || language.sentenceOpeners.test(visible),
 			segment,
+			paragraph,
 		});
+		// Le début de la ligne de ce mot : après le dernier saut de ligne qui le précède.
+		if (previousEnd < 0) previousLineStart = masked.lastIndexOf("\n", from) + 1;
+		else if (newline >= 0) previousLineStart = previousEnd + newline + 1;
 		previousEnd = to;
 	}
 	return tokens;

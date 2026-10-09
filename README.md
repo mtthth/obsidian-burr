@@ -53,7 +53,8 @@ Un mot faible n'est pas une faute : c'est un **signal de densité**. Un « très
   - La note porte la balise `burr-ignorer` : ses propres mots ne sont pas soulignés.
 - **Une intensité selon l'accumulation** : plus la famille revient dans le paragraphe, plus le trait est épais.
 - **Au survol** : « *très* — Intensifs et atténuateurs : 3 dans ce paragraphe. »
-- **Jamais en double.** Un mot déjà surligné comme répétition ou souligné comme mot rare n'est pas signalé en plus comme faible ; il compte pourtant dans le seuil. Un paragraphe est ce qui tient entre deux sauts de ligne.
+- **Jamais en double.** Un mot déjà surligné comme répétition ou souligné comme mot rare n'est pas signalé en plus comme faible ; il compte pourtant dans le seuil.
+- **Qu'est-ce qu'un paragraphe ?** Il s'arrête à une ligne blanche (ou sans mots : séparateur, bloc de code), à un titre, un élément de liste ou une réplique, et au retour à la ligne qui suit une fin de phrase. Un retour à la ligne au milieu d'une phrase le continue : un paragraphe par ligne et un texte coupé à la main sont compris tous deux.
 - Les mêmes filtres s'appliquent : frontmatter, code, commentaires, dialogues en option. Dans une réplique, « vraiment » ou « quelque chose » sont souvent voulus : activez « Ignorer les dialogues ».
 
 Le mode Lecture n'est pas couvert : Burr travaille dans l'éditeur.

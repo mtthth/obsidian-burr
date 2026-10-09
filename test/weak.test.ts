@@ -71,6 +71,22 @@ test("le seuil se compte par paragraphe", () => {
 	assert.equal(passages(text, { weakThreshold: 1 }).length, 5);
 });
 
+test("un paragraphe coupé à la main reste un paragraphe ; une ligne blanche, un titre, une réplique ou une liste le ferment", () => {
+	// Retours à la ligne au milieu d'une phrase : un seul paragraphe.
+	assert.equal(passages("Il était très las,\ntrès fatigué,\ntrès vieux.").length, 3);
+	// Un commentaire sur deux lignes ne coupe pas le paragraphe.
+	assert.equal(passages("Il était très las %% note\nsur deux lignes %% et très vieux, très seul.").length, 3);
+	for (const text of [
+		"Il était très las, très vieux\n\ntrès seul.",
+		"# Un très bon titre\nTrès las, très vieux",
+		"Il était très las\n— Très vieux, très seul",
+		"- très las\n- très vieux\n- très seul",
+		"Il était très las\n```\ncode\n```\ntrès vieux, très seul",
+	]) {
+		assert.deepEqual(passages(text), [], text);
+	}
+});
+
 test("la famille compte, pas le mot : trois intensifs différents suffisent", () => {
 	assert.equal(passages("très, assez, presque.").length, 3);
 });

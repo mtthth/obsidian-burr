@@ -23,7 +23,7 @@ function intensityFor(count: number, threshold: number): Intensity {
  *
  * Un seul passage glouton sur les mots : à chaque position, l'entrée la plus longue gagne
  * (« quelque chose » plutôt que « chose »), et ses mots ne comptent pas deux fois.
- * Un paragraphe est ce qui tient entre deux sauts de ligne.
+ * Les paragraphes sont ceux du découpage en mots (voir `Token.paragraph`).
  */
 function detect({ text, tokens, language, settings, lexicon }: DetectionInput): Highlight[] {
 	if (!settings.weakWords || lexicon.families.length === 0) return [];
@@ -40,9 +40,7 @@ function detect({ text, tokens, language, settings, lexicon }: DetectionInput): 
 	const counts = new Map<number, number>(); // paragraphe * (nombre de familles) + famille -> occurrences
 	const stride = lexicon.families.length;
 
-	let paragraph = 0;
 	for (let i = 0; i < tokens.length; ) {
-		if (i > 0 && text.slice(tokens[i - 1].to, tokens[i].from).includes("\n")) paragraph++;
 		const match = matcher.match(tokens, i);
 		if (!match) {
 			i++;
@@ -50,6 +48,7 @@ function detect({ text, tokens, language, settings, lexicon }: DetectionInput): 
 		}
 		const last = i + match.length - 1;
 		if (!disabled.has(lexicon.families[match.family].id)) {
+			const paragraph = tokens[i].paragraph;
 			hits.push({ first: i, last, family: match.family, paragraph });
 			const key = paragraph * stride + match.family;
 			counts.set(key, (counts.get(key) ?? 0) + 1);
