@@ -16,7 +16,7 @@ const DEBOUNCE_MS = 250;
 const setHighlights = StateEffect.define<DecorationSet>();
 
 /** Demande une nouvelle analyse tout de suite (réglages modifiés). */
-export const refreshHighlights = StateEffect.define<null>();
+const refreshHighlights = StateEffect.define<null>();
 
 /** Les classes CSS de chaque catégorie (`burr-repetition`, `burr-echo`…), par couleur puis par intensité (1 à 3). */
 const classCache = new Map<string, string[][]>();
@@ -147,6 +147,13 @@ const explanation = hoverTooltip(
 	{ hideOnChange: true },
 );
 
+export interface Highlighter {
+	/** L'extension à inscrire dans les éditeurs. */
+	extension: Extension;
+	/** Relance tout de suite l'analyse dans les éditeurs où l'extension tourne, ou dans ceux que `only` retient. */
+	refresh(only?: (view: EditorView) => boolean): void;
+}
+
 /**
  * Surligne les répétitions du document, en mode source comme en aperçu en direct.
  * `isExcluded` dit si la note de cet éditeur est laissée de côté (dossier, balise du YAML).
@@ -155,7 +162,11 @@ export function burrHighlighter(
 	getSettings: () => BurrSettings,
 	isExcluded: (view: EditorView) => boolean,
 	getLexicon: () => Lexicon | undefined,
-): Extension {
+): Highlighter {
+	// Tous les éditeurs où l'extension tourne : ceux des notes, mais aussi ceux d'un canvas,
+	// d'un aperçu au survol ou d'une note embarquée, que l'espace de travail ne liste pas.
+	const views = new Set<EditorView>();
+
 	const scheduler = ViewPlugin.fromClass(
 		class {
 			private view: EditorView;
@@ -165,6 +176,7 @@ export function burrHighlighter(
 
 			constructor(view: EditorView) {
 				this.view = view;
+				views.add(view);
 				// Pas de dispatch pendant la construction : on diffère.
 				this.schedule(0);
 			}
@@ -176,6 +188,7 @@ export function burrHighlighter(
 			}
 
 			destroy() {
+				views.delete(this.view);
 				this.cancel();
 			}
 
@@ -199,5 +212,12 @@ export function burrHighlighter(
 			}
 		},
 	);
-	return [highlightField, explanation, scheduler];
+	return {
+		extension: [highlightField, explanation, scheduler],
+		refresh(only) {
+			for (const view of views) {
+				if (!only || only(view)) view.dispatch({ effects: refreshHighlights.of(null) });
+			}
+		},
+	};
 }

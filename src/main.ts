@@ -1,7 +1,8 @@
 import type { EditorView } from "@codemirror/view";
-import { MarkdownView, Menu, Notice, Plugin, TFile, editorInfoField, normalizePath } from "obsidian";
+import { Menu, Notice, Plugin, TFile, editorInfoField, normalizePath } from "obsidian";
 import type { MenuItem } from "obsidian";
-import { burrHighlighter, refreshHighlights } from "./editor/highlight.ts";
+import { burrHighlighter } from "./editor/highlight.ts";
+import type { Highlighter } from "./editor/highlight.ts";
 import { addIgnoreTag, exclusionOf, removeIgnoreTag } from "./scope.ts";
 import type { Exclusion } from "./scope.ts";
 import { DEFAULT_SETTINGS, markdownPath, sanitizeSettings } from "./settings.ts";
@@ -31,10 +32,13 @@ export default class BurrPlugin extends Plugin {
 
 	private settingTab: BurrSettingTab | undefined;
 
+	private highlighter: Highlighter | undefined;
+
 	async onload() {
 		this.settings = sanitizeSettings(await this.loadData());
 
-		this.registerEditorExtension(burrHighlighter(() => this.settings, (view) => this.isExcluded(view), () => this.lexicon));
+		this.highlighter = burrHighlighter(() => this.settings, (view) => this.isExcluded(view), () => this.lexicon);
+		this.registerEditorExtension(this.highlighter.extension);
 
 		this.addCommand({
 			id: "toggle-repetitions",
@@ -294,12 +298,6 @@ export default class BurrPlugin extends Plugin {
 
 	/** Relance l'analyse dans les éditeurs ouverts : tous, ou ceux d'une seule note. */
 	private refreshEditors(only?: TFile) {
-		this.app.workspace.iterateAllLeaves((leaf) => {
-			if (!(leaf.view instanceof MarkdownView)) return;
-			if (only && leaf.view.file !== only) return;
-			// `editor.cm` n'est pas dans l'API publique, mais c'est l'usage établi.
-			const cm = (leaf.view.editor as unknown as { cm?: EditorView }).cm;
-			cm?.dispatch({ effects: refreshHighlights.of(null) });
-		});
+		this.highlighter?.refresh(only && ((view) => view.state.field(editorInfoField, false)?.file === only));
 	}
 }
