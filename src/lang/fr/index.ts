@@ -52,6 +52,8 @@ export const french: Language = {
 		// Passage entre guillemets français.
 		/«[^»\n]*»/g,
 	],
-	// Guillemets, tirets de dialogue (« -- » : tiret cadratin tapé au clavier), parenthèse.
-	sentenceOpeners: /[«“"—–(]|--/,
+	// Guillemets ouvrants, tirets de dialogue (« -- » : tiret cadratin tapé au clavier). Le guillemet
+	// droit n'ouvre que s'il suit une espace : fermant, il est collé au mot d'avant (« dit "non" Pierre »).
+	// Pas la parenthèse : en milieu de phrase, elle n'en ouvre pas une (« il partit (Paris l'attendait) »).
+	sentenceOpeners: /[«“—–]|--|\s"\s*$/,
 };

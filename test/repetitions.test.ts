@@ -57,6 +57,12 @@ test("une majuscule de titre ou de sens ne fait pas taire le mot écrit en minus
 	assert.deepEqual(words("Les droits de l'Homme. Un homme passa, puis un autre homme."), ["homme", "homme"]);
 });
 
+test("un nom propre se reconnaît après un guillemet fermant, une parenthèse ou dans un lien", () => {
+	assert.deepEqual(words('Il répondit "non" Lucien. Lucien partit. Lucien revint.'), []);
+	assert.deepEqual(words("Il partit (Lucien dormait). Lucien revint. Lucien rit."), []);
+	assert.deepEqual(words("Il vit [[Lucien Martin|Lucien]] hier. Lucien revint. Lucien rit."), []);
+});
+
 test("un nom propre qui est aussi un nom commun n'est écarté que là où il porte sa majuscule", () => {
 	assert.deepEqual(words("Pierre ramassa une pierre. Alors Pierre sourit."), []);
 	assert.deepEqual(words("Il vit Pierre près de la pierre, puis une autre pierre."), ["pierre", "pierre"]);

@@ -73,6 +73,18 @@ test("un mot ouvre une phrase après une ponctuation forte ou une ouverture de r
 	assert.equal(byNorm.léa.capitalized, true);
 });
 
+test("un guillemet droit fermant, une parenthèse ou un lien n'ouvrent pas de phrase", () => {
+	const t = tokens('Il dit "non" Pierre, puis (Paris dormait) et [[Lyon (ville)|Lyon]] aussi. Il cria "Viens" et " Va " encore.');
+	const byNorm = Object.fromEntries(t.map((x) => [x.norm, x]));
+	assert.equal(byNorm.pierre.sentenceStart, false);
+	assert.equal(byNorm.paris.sentenceStart, false);
+	assert.equal(byNorm.lyon.sentenceStart, false);
+	assert.equal(byNorm.viens.sentenceStart, true); // un guillemet droit ouvrant, après une espace
+	assert.equal(byNorm.va.sentenceStart, true);
+	// Le lien coupe pourtant le segment : « et » et « Lyon » ne forment pas une expression.
+	assert.notEqual(byNorm.et.segment, byNorm.lyon.segment);
+});
+
 test("la langue d'un document est le français, pour l'instant", () => {
 	assert.equal(resolveLanguage({ text: "" }).id, "fr");
 	assert.equal(resolveLanguage({ text: "The cat sat on the mat." }).id, "fr");

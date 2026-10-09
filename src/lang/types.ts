@@ -54,7 +54,8 @@ export interface Language {
 	/**
 	 * Signes qui ouvrent une phrase ou une réplique sans ponctuation forte
 	 * avant eux (« Il dit : « Viens » »). La majuscule qui les suit ne prouve pas
-	 * un nom propre. Motif sans drapeau `g`, utilisé avec `test`.
+	 * un nom propre. Motif sans drapeau `g`, testé sur ce qui sépare un mot du
+	 * précédent, zones ignorées retirées.
 	 */
 	readonly sentenceOpeners: RegExp;
 }

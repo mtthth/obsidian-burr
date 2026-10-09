@@ -78,17 +78,21 @@ export function ignoredSpans(text: string, language: Language, options: IgnoreOp
 	return mergeSpans(spans);
 }
 
+/** Le caractère qui recouvre les zones ignorées : ni lettre, ni ponctuation, ni espace. */
+export const MASK = "\u0000";
+
 /**
- * Remplace les plages ignorées par des sauts de ligne, sans changer la
- * longueur du texte. Le saut de ligne joue aussi le rôle de coupure : deux mots
- * de part et d'autre d'une zone ignorée ne forment jamais une expression.
+ * Recouvre les plages ignorées de `MASK`, sans changer la longueur du texte.
+ * Une zone ignorée coupe : deux mots de part et d'autre ne forment jamais une
+ * expression. Elle ne dit rien, en revanche, du début d'une phrase : c'est la
+ * ponctuation autour qui le dit (« Il vit [[Paris|Paris]] » : Paris est en milieu de phrase).
  */
 export function maskSpans(text: string, spans: readonly Span[]): string {
 	if (spans.length === 0) return text;
 	const parts: string[] = [];
 	let pos = 0;
 	for (const [from, to] of spans) {
-		parts.push(text.slice(pos, from), "\n".repeat(to - from));
+		parts.push(text.slice(pos, from), MASK.repeat(to - from));
 		pos = to;
 	}
 	parts.push(text.slice(pos));

@@ -1,5 +1,5 @@
 import type { Language } from "../lang/types.ts";
-import { ignoredSpans, maskSpans } from "./ignored.ts";
+import { MASK, ignoredSpans, maskSpans } from "./ignored.ts";
 import type { IgnoreOptions } from "./ignored.ts";
 import { normalizeText } from "./normalize.ts";
 
@@ -48,16 +48,17 @@ export function tokenize(text: string, language: Language, options: IgnoreOption
 		const from = match.index as number;
 		const to = from + match[0].length;
 		const gap = previousEnd < 0 ? "\n" : masked.slice(previousEnd, from);
+		// Ce qui sépare les deux mots une fois les zones ignorées retirées : la ponctuation du lecteur.
+		const visible = gap.split(MASK).join("");
 
-		const newSegment = HARD_BREAK.test(gap);
-		if (newSegment) segment++;
+		if (HARD_BREAK.test(gap) || gap.includes(MASK)) segment++;
 
 		tokens.push({
 			from,
 			to,
 			norm: match[0].toLowerCase().normalize("NFC"),
 			capitalized: UPPERCASE_FIRST.test(match[0]),
-			sentenceStart: newSegment || language.sentenceOpeners.test(gap),
+			sentenceStart: HARD_BREAK.test(visible) || language.sentenceOpeners.test(visible),
 			segment,
 		});
 		previousEnd = to;
