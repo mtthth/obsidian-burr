@@ -5,7 +5,7 @@ import { WEAK } from "../src/detectors/weak.ts";
 import { french } from "../src/lang/fr/index.ts";
 import { DEFAULT_SETTINGS, markdownPath } from "../src/settings.ts";
 import type { BurrSettings } from "../src/settings.ts";
-import { defaultLexicon, parseLexicon } from "../src/weak/lexicon.ts";
+import { defaultLexicon, followRenames, parseLexicon } from "../src/weak/lexicon.ts";
 
 /** Sans répétitions : un mot répété de près est surligné comme tel, et cède la place (voir le test dédié). */
 const ALONE: Partial<BurrSettings> = { enabled: false, echoes: false };
@@ -170,4 +170,18 @@ test("le chemin de la note prend l'extension .md quand elle manque", () => {
 	assert.equal(markdownPath("Notes/v1.2/mots"), "Notes/v1.2/mots.md");
 	assert.equal(markdownPath("Notes/mots-faibles.md"), "Notes/mots-faibles.md");
 	assert.equal(markdownPath("Notes/Mots-faibles.MD"), "Notes/Mots-faibles.MD");
+});
+
+test("une section renommée reste désactivée ; une section ajoutée, retirée ou déplacée ne vole rien", () => {
+	const before = parseLexicon("## Intensifs\n\ntrès\n\n## Mots vagues\n\nchose\n\n## Béquilles\n\npuis\n");
+	const renamed = parseLexicon("## Intensifs\n\ntrès\n\n## Mots flous\n\nchose\n\n## Béquilles\n\npuis\n");
+	assert.deepEqual(followRenames(["mots-vagues", "bequilles"], before, renamed), ["mots-flous", "bequilles"]);
+
+	// Une section ajoutée en tête décale les autres, qui existent toujours : rien ne change.
+	const added = parseLexicon("## Nouvelle\n\nmachin\n\n## Intensifs\n\ntrès\n\n## Mots vagues\n\nchose\n");
+	assert.deepEqual(followRenames(["intensifs", "mots-vagues"], before, added), ["intensifs", "mots-vagues"]);
+
+	// Une section retirée : celle qui prend son rang existait déjà, elle n'hérite pas de l'interrupteur.
+	const removed = parseLexicon("## Intensifs\n\ntrès\n\n## Béquilles\n\npuis\n");
+	assert.deepEqual(followRenames(["mots-vagues"], before, removed), ["mots-vagues"]);
 });

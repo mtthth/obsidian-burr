@@ -82,6 +82,21 @@ export function parseLexicon(markdown: string): Lexicon {
 	return { families: families.filter((family) => family.entries.length > 0) };
 }
 
+/**
+ * Les familles désactivées après une nouvelle lecture de la note. Une section renommée change
+ * d'identifiant : quand un identifiant désactivé disparaît et qu'un nouveau prend son rang (celui
+ * qui donne sa couleur), c'est la même famille, qui reste désactivée.
+ */
+export function followRenames(disabled: readonly string[], before: Lexicon, after: Lexicon): string[] {
+	const now = new Set(after.families.map((family) => family.id));
+	const known = new Set(before.families.map((family) => family.id));
+	return disabled.map((id) => {
+		if (now.has(id)) return id;
+		const successor = after.families[before.families.findIndex((family) => family.id === id)];
+		return successor && !known.has(successor.id) ? successor.id : id;
+	});
+}
+
 /** Le dictionnaire livré avec la langue : celui que l'on utilise tant que la note n'existe pas. */
 export function defaultLexicon(language: Language): Lexicon {
 	let lexicon = defaults.get(language);

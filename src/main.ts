@@ -8,7 +8,7 @@ import { DEFAULT_SETTINGS, markdownPath, sanitizeSettings } from "./settings.ts"
 import type { BurrSettings } from "./settings.ts";
 import { BurrSettingTab } from "./settingsTab.ts";
 import { resolveLanguage } from "./lang/index.ts";
-import { defaultLexicon, parseLexicon } from "./weak/lexicon.ts";
+import { defaultLexicon, followRenames, parseLexicon } from "./weak/lexicon.ts";
 import type { Lexicon } from "./weak/lexicon.ts";
 
 /** Un chemin tel que Windows et macOS le comparent : sans tenir compte des majuscules. */
@@ -25,6 +25,11 @@ export default class BurrPlugin extends Plugin {
 
 	/** Numéro de la dernière lecture de cette note : une lecture dépassée ne s'applique pas. */
 	private lexiconReads = 0;
+
+	/** La note lue (chemin et texte) : relue à l'identique, elle ne relance pas l'analyse. */
+	private lexiconSource: { path: string; text: string } | undefined;
+
+	private settingTab: BurrSettingTab | undefined;
 
 	async onload() {
 		this.settings = sanitizeSettings(await this.loadData());
@@ -111,12 +116,14 @@ export default class BurrPlugin extends Plugin {
 			}),
 		);
 
-		this.addSettingTab(new BurrSettingTab(this.app, this));
+		this.settingTab = new BurrSettingTab(this.app, this);
+		this.addSettingTab(this.settingTab);
 	}
 
-	async saveSettings() {
+	/** Enregistre les réglages et, sauf si `refresh` est faux, relance l'analyse dans les éditeurs ouverts. */
+	async saveSettings(refresh = true) {
 		await this.saveData(this.settings);
-		this.refreshEditors();
+		if (refresh) this.refreshEditors();
 	}
 
 	/** Les mots faibles en vigueur : ceux de la note, à défaut ceux de la langue. */
@@ -142,19 +149,40 @@ export default class BurrPlugin extends Plugin {
 		return this.app.vault.getMarkdownFiles().find((file) => pathKey(file.path) === key) ?? null;
 	}
 
-	/** Relit la note des mots faibles (absente : on revient aux mots de la langue) et relance l'analyse. */
+	/**
+	 * Relit la note des mots faibles (absente : on revient aux mots de la langue). Si elle a changé,
+	 * relance l'analyse et redessine les interrupteurs des familles dans les réglages.
+	 */
 	async loadLexicon() {
 		const read = ++this.lexiconReads;
 		const file = this.weakNoteFile();
+		let source: { path: string; text: string } | undefined;
 		let lexicon: Lexicon | undefined;
 		try {
-			lexicon = file ? parseLexicon(await this.app.vault.cachedRead(file)) : undefined;
+			if (file) {
+				source = { path: file.path, text: await this.app.vault.cachedRead(file) };
+				lexicon = parseLexicon(source.text);
+			}
 		} catch (error) {
 			console.error("Burr : note des mots faibles illisible", error);
+			source = lexicon = undefined;
 		}
 		// Deux modifications rapprochées : la dernière lecture lancée l'emporte, même si elle répond la première.
 		if (read !== this.lexiconReads) return;
+		const before = this.lexiconSource;
+		if (before?.path === source?.path && before?.text === source?.text) return;
+
+		// Une section renommée dans la même note garde son interrupteur.
+		if (this.lexicon && lexicon && before?.path === source?.path) {
+			const disabled = followRenames(this.settings.weakDisabled, this.lexicon, lexicon);
+			if (disabled.some((id, i) => id !== this.settings.weakDisabled[i])) {
+				this.settings.weakDisabled = disabled;
+				await this.saveSettings(false);
+			}
+		}
+		this.lexiconSource = source;
 		this.lexicon = lexicon;
+		this.settingTab?.renderFamilies();
 		this.refreshEditors();
 	}
 

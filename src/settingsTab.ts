@@ -5,6 +5,9 @@ import { DEFAULT_WEAK_NOTE, ECHO_REACHES, NGRAM_RANGE, WEAK_THRESHOLD_RANGE, WIN
 export class BurrSettingTab extends PluginSettingTab {
 	private plugin: BurrPlugin;
 
+	/** Où se dessinent les interrupteurs des familles, tant que l'onglet est affiché. */
+	private familiesEl: HTMLElement | null = null;
+
 	constructor(app: App, plugin: BurrPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
@@ -127,17 +130,8 @@ export class BurrSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		for (const family of this.plugin.currentLexicon().families) {
-			new Setting(containerEl)
-				.setName(family.label)
-				.addToggle((toggle) =>
-					toggle.setValue(!settings.weakDisabled.includes(family.id)).onChange(async (value) => {
-						const others = settings.weakDisabled.filter((id) => id !== family.id);
-						settings.weakDisabled = value ? others : [...others, family.id];
-						await save();
-					}),
-				);
-		}
+		this.familiesEl = containerEl.createDiv();
+		this.renderFamilies();
 
 		new Setting(containerEl)
 			.setName("Note des mots faibles")
@@ -151,7 +145,8 @@ export class BurrSettingTab extends PluginSettingTab {
 					.setValue(settings.weakNote)
 					.onChange(async (value) => {
 						settings.weakNote = value.trim() || DEFAULT_WEAK_NOTE;
-						await this.plugin.saveSettings();
+						// Seule la note compte : relue, elle relance l'analyse si elle a changé, pas à chaque lettre tapée.
+						await this.plugin.saveSettings(false);
 						await this.plugin.loadLexicon();
 					}),
 			)
@@ -219,5 +214,29 @@ export class BurrSettingTab extends PluginSettingTab {
 			text: "Des fonctionnalités supplémentaires sont disponibles quand Marginal Notes est installé : au survol d'une répétition, ses deux occurrences sont repérées dans la minipage.",
 			cls: "setting-item-description",
 		});
+	}
+
+	hide(): void {
+		this.familiesEl = null;
+		super.hide();
+	}
+
+	/** Un interrupteur par famille de la note en vigueur ; redessinés quand la note change. */
+	renderFamilies(): void {
+		const el = this.familiesEl;
+		if (!el) return;
+		el.empty();
+		const settings = this.plugin.settings;
+		for (const family of this.plugin.currentLexicon().families) {
+			new Setting(el)
+				.setName(family.label)
+				.addToggle((toggle) =>
+					toggle.setValue(!settings.weakDisabled.includes(family.id)).onChange(async (value) => {
+						const others = settings.weakDisabled.filter((id) => id !== family.id);
+						settings.weakDisabled = value ? others : [...others, family.id];
+						await this.plugin.saveSettings();
+					}),
+				);
+		}
 	}
 }
