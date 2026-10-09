@@ -30,6 +30,7 @@ Un mot rare se remarque : *chatoyant* employé au chapitre 1 se lit encore comme
 - **Jusqu'à quelle distance ?** 5 000 mots par défaut, soit à peu près un chapitre ; réglable de 1 000 mots à tout le document. Sur un manuscrit entier dans une seule note, « tout le document » souligne beaucoup : les mots rares finissent tous par revenir.
 - **Une vague plus marquée pour un mot plus rare.** L'intensité dit la rareté, pas la distance.
 - **Au survol**, l'infobulle dit où est l'autre emploi : « *chatoyant*, mot très rare, apparaît déjà 2 960 mots plus haut », « *chatoyaient*, mot très rare, reprend *chatoyant* 303 mots plus haut ».
+- **Seulement de loin.** Seuls les emplois séparés par plus que la fenêtre sont soulignés (plus que la moitié pour deux formes différentes, comme pour les répétitions proches), que le surlignage des répétitions soit affiché ou non : de près, c'est son affaire.
 - **Jamais en double.** Un mot déjà surligné comme répétition proche n'est pas souligné en plus ; l'emploi suivant, s'il est lointain, l'est.
 - Les mêmes filtres s'appliquent : mots-outils, noms propres, dialogues en option. Un mot rare qui est le sujet même du texte (*harpon* dans une histoire de baleinier) s'écarte avec « Mots à ignorer en plus ».
 

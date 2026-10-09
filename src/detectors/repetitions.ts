@@ -297,8 +297,14 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 			const family = wordFamily(i);
 			const previous = lastOfFamily.get(family);
 			if (previous !== undefined && i - previous <= echoReach) {
-				link(i, previous);
-				link(previous, i);
+				// Ce que la fenêtre couvre n'est pas repris de loin : la même forme jusqu'à `window`
+				// mots, une autre forme jusqu'à la moitié, comme les expressions. Que les répétitions
+				// soient affichées ou non, un mot rare repris de près ne devient pas une vague.
+				const near = tokens[i].norm === tokens[previous].norm ? reach : reach / 2;
+				if (i - previous > near) {
+					link(i, previous);
+					link(previous, i);
+				}
 			}
 			lastOfFamily.set(family, i);
 		}

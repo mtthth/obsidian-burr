@@ -150,6 +150,19 @@ test("noms propres, mots de l'utilisateur et réglage désactivé : rien n'est s
 	assert.deepEqual(echoes(text, { echoes: false }), []);
 });
 
+test("un mot rare repris de près n'est pas souligné d'une vague, que les répétitions soient affichées ou non", () => {
+	const near = "Le chatoyant reflet, si chatoyant.";
+	assert.deepEqual(echoes(near), []);
+	assert.deepEqual(echoes(near, { enabled: false }), []);
+	// Deux formes au-delà de la moitié de la fenêtre : la répétition proche ne les relie plus, la vague si.
+	const forms = `Un reflet chatoyant. ${filler(50)} Les eaux chatoyaient.`;
+	assert.equal(echoes(forms).length, 2);
+	assert.equal(echoes(forms, { enabled: false }).length, 2);
+	const far = `Un reflet chatoyant. ${filler(100)} Un tissu chatoyant.`;
+	assert.equal(echoes(far).length, 2);
+	assert.equal(echoes(far, { enabled: false }).length, 2);
+});
+
 test("les réglages des mots rares sont bornés", () => {
 	assert.equal(sanitizeSettings({ echoRarity: 7 }).echoRarity, 3);
 	assert.equal(sanitizeSettings({ echoRarity: "x" as unknown as number }).echoRarity, DEFAULT_SETTINGS.echoRarity);
