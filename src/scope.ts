@@ -72,16 +72,18 @@ export function removeIgnoreTag(frontmatter: Frontmatter): void {
  * Une note est laissée de côté si son YAML porte la balise, si elle est dans un dossier
  * à ignorer, ou si des dossiers à analyser sont donnés et qu'elle n'est dans aucun.
  * Ignorer l'emporte sur analyser : `Roman` analysé, `Roman/Brouillons` ignoré.
+ * Les dossiers passent avant la balise : quand ils écartent la note, retirer
+ * la balise n'y changerait rien, et le menu ne doit pas proposer de « réactiver ».
  */
 export function exclusionOf(
 	path: string,
 	frontmatter: Frontmatter | null | undefined,
 	scope: Pick<BurrSettings, "includedFolders" | "excludedFolders">,
 ): Exclusion | null {
-	if (hasIgnoreTag(frontmatter)) return "tag";
 	const key = path.normalize("NFC").toLowerCase();
 	if (parseFolderList(scope.excludedFolders).some((folder) => inFolder(key, folder))) return "folder";
 	const included = parseFolderList(scope.includedFolders);
 	if (included.length > 0 && !included.some((folder) => inFolder(key, folder))) return "folder";
+	if (hasIgnoreTag(frontmatter)) return "tag";
 	return null;
 }

@@ -66,8 +66,12 @@ test("la balise du YAML écarte la note, sous toutes les formes de la propriét�
 	}
 });
 
-test("la balise passe avant les dossiers : c'est elle qu'on peut retirer", () => {
-	assert.equal(exclusionOf("Roman/a.md", { tags: [IGNORE_TAG] }, scope("", "Roman")), "tag");
+test("les dossiers passent avant la balise : la retirer n'y changerait rien", () => {
+	// Dossier ignoré, ou hors des dossiers à analyser : le menu ne propose pas de « réactiver ».
+	assert.equal(exclusionOf("Roman/a.md", { tags: [IGNORE_TAG] }, scope("", "Roman")), "folder");
+	assert.equal(exclusionOf("Journal/a.md", { tags: [IGNORE_TAG] }, scope("Roman", "")), "folder");
+	// Dans un dossier analysé, la balise reste ce qui écarte la note.
+	assert.equal(exclusionOf("Roman/a.md", { tags: [IGNORE_TAG] }, scope("Roman", "")), "tag");
 });
 
 test("ajouter la balise garde les autres, sans doublon", () => {
