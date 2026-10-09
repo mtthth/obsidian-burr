@@ -5,8 +5,9 @@ import { DEFAULT_WEAK_NOTE, ECHO_REACHES, NGRAM_RANGE, WEAK_THRESHOLD_RANGE, WIN
 export class BurrSettingTab extends PluginSettingTab {
 	private plugin: BurrPlugin;
 
-	/** Où se dessinent les interrupteurs des familles, tant que l'onglet est affiché. */
-	private familiesEl: HTMLElement | null = null;
+	/** Les interrupteurs des familles, et le réglage devant lequel ils se placent tant que l'onglet est affiché. */
+	private familySettings: Setting[] = [];
+	private familiesAnchor: HTMLElement | null = null;
 
 	constructor(app: App, plugin: BurrPlugin) {
 		super(app, plugin);
@@ -130,10 +131,7 @@ export class BurrSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		this.familiesEl = containerEl.createDiv();
-		this.renderFamilies();
-
-		new Setting(containerEl)
+		const note = new Setting(containerEl)
 			.setName("Note des mots faibles")
 			.setDesc(
 				"Les mots de chaque famille se lisent dans une note du coffre (une section par famille) : vous l'éditez dans Obsidian, elle est versionnée et synchronisée avec le reste. " +
@@ -153,6 +151,10 @@ export class BurrSettingTab extends PluginSettingTab {
 			.addButton((button) =>
 				button.setButtonText("Ouvrir").onClick(() => this.plugin.openWeakWordsNote()),
 			);
+		// Les interrupteurs des familles se placent juste avant le réglage de la note qui les définit.
+		this.familySettings = [];
+		this.familiesAnchor = note.settingEl;
+		this.renderFamilies();
 
 		new Setting(containerEl)
 			.setName("Ignorer les noms propres")
@@ -217,26 +219,27 @@ export class BurrSettingTab extends PluginSettingTab {
 	}
 
 	hide(): void {
-		this.familiesEl = null;
+		this.familySettings = [];
+		this.familiesAnchor = null;
 		super.hide();
 	}
 
-	/** Un interrupteur par famille de la note en vigueur ; redessinés quand la note change. */
+	/** Un interrupteur par famille de la note en vigueur, devant le réglage de la note ; redessinés quand elle change. */
 	renderFamilies(): void {
-		const el = this.familiesEl;
-		if (!el) return;
-		el.empty();
+		const anchor = this.familiesAnchor;
+		if (!anchor) return;
+		for (const setting of this.familySettings) setting.settingEl.remove();
 		const settings = this.plugin.settings;
-		for (const family of this.plugin.currentLexicon().families) {
-			new Setting(el)
-				.setName(family.label)
-				.addToggle((toggle) =>
-					toggle.setValue(!settings.weakDisabled.includes(family.id)).onChange(async (value) => {
-						const others = settings.weakDisabled.filter((id) => id !== family.id);
-						settings.weakDisabled = value ? others : [...others, family.id];
-						await this.plugin.saveSettings();
-					}),
-				);
-		}
+		this.familySettings = this.plugin.currentLexicon().families.map((family) => {
+			const setting = new Setting(this.containerEl).setName(family.label).addToggle((toggle) =>
+				toggle.setValue(!settings.weakDisabled.includes(family.id)).onChange(async (value) => {
+					const others = settings.weakDisabled.filter((id) => id !== family.id);
+					settings.weakDisabled = value ? others : [...others, family.id];
+					await this.plugin.saveSettings();
+				}),
+			);
+			anchor.before(setting.settingEl);
+			return setting;
+		});
 	}
 }
