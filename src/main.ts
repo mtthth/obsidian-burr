@@ -4,12 +4,15 @@ import type { MenuItem } from "obsidian";
 import { burrHighlighter, refreshHighlights } from "./editor/highlight.ts";
 import { addIgnoreTag, exclusionOf, removeIgnoreTag } from "./scope.ts";
 import type { Exclusion } from "./scope.ts";
-import { DEFAULT_SETTINGS, sanitizeSettings } from "./settings.ts";
+import { DEFAULT_SETTINGS, markdownPath, sanitizeSettings } from "./settings.ts";
 import type { BurrSettings } from "./settings.ts";
 import { BurrSettingTab } from "./settingsTab.ts";
 import { resolveLanguage } from "./lang/index.ts";
 import { defaultLexicon, parseLexicon } from "./weak/lexicon.ts";
 import type { Lexicon } from "./weak/lexicon.ts";
+
+/** Un chemin tel que Windows et macOS le comparent : sans tenir compte des majuscules. */
+const pathKey = (path: string): string => path.normalize("NFC").toLowerCase();
 
 export default class BurrPlugin extends Plugin {
 	settings: BurrSettings = { ...DEFAULT_SETTINGS };
@@ -53,8 +56,8 @@ export default class BurrPlugin extends Plugin {
 
 		// La note des mots faibles est relue à chaque modification, et à son apparition ou disparition.
 		const onNoteChange = (file: { path: string }, oldPath?: string) => {
-			const path = normalizePath(this.settings.weakNote);
-			if (file.path === path || oldPath === path) void this.loadLexicon();
+			const key = pathKey(this.weakNotePath());
+			if (pathKey(file.path) === key || (oldPath !== undefined && pathKey(oldPath) === key)) void this.loadLexicon();
 		};
 		this.registerEvent(this.app.vault.on("modify", (file) => onNoteChange(file)));
 		this.registerEvent(this.app.vault.on("create", (file) => onNoteChange(file)));
@@ -118,11 +121,29 @@ export default class BurrPlugin extends Plugin {
 		return this.lexicon ?? defaultLexicon(resolveLanguage({ text: "" }));
 	}
 
+	/** Le chemin de la note des mots faibles : celui des réglages, avec l'extension .md si elle manque. */
+	private weakNotePath(): string {
+		return markdownPath(normalizePath(this.settings.weakNote));
+	}
+
+	/**
+	 * La note des mots faibles, si elle existe. À défaut du chemin exact, une note qui ne s'en
+	 * distingue que par les majuscules : Windows et macOS les confondent, et « Mots-faibles.md »
+	 * ne doit ni faire croire la note absente, ni échouer à la créer parce qu'elle existe.
+	 */
+	private weakNoteFile(): TFile | null {
+		const path = this.weakNotePath();
+		const exact = this.app.vault.getAbstractFileByPath(path);
+		if (exact instanceof TFile) return exact;
+		const key = pathKey(path);
+		return this.app.vault.getMarkdownFiles().find((file) => pathKey(file.path) === key) ?? null;
+	}
+
 	/** Relit la note des mots faibles (absente : on revient aux mots de la langue) et relance l'analyse. */
 	async loadLexicon() {
-		const file = this.app.vault.getAbstractFileByPath(normalizePath(this.settings.weakNote));
+		const file = this.weakNoteFile();
 		try {
-			this.lexicon = file instanceof TFile ? parseLexicon(await this.app.vault.cachedRead(file)) : undefined;
+			this.lexicon = file ? parseLexicon(await this.app.vault.cachedRead(file)) : undefined;
 		} catch (error) {
 			console.error("Burr : note des mots faibles illisible", error);
 			this.lexicon = undefined;
@@ -132,9 +153,9 @@ export default class BurrPlugin extends Plugin {
 
 	/** Ouvre la note des mots faibles ; si elle n'existe pas, la crée avec les mots de la langue, à éditer. */
 	async openWeakWordsNote() {
-		const path = normalizePath(this.settings.weakNote);
-		let file = this.app.vault.getAbstractFileByPath(path);
-		if (!(file instanceof TFile)) {
+		let file = this.weakNoteFile();
+		if (!file) {
+			const path = this.weakNotePath();
 			const template = resolveLanguage({ text: "" }).weak?.template;
 			if (template === undefined) return;
 			const folder = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
@@ -147,7 +168,7 @@ export default class BurrPlugin extends Plugin {
 				return;
 			}
 		}
-		if (file instanceof TFile) await this.app.workspace.getLeaf(false).openFile(file);
+		await this.app.workspace.getLeaf(false).openFile(file);
 	}
 
 	/** Pourquoi cette note n'est pas analysée, ou null si elle l'est. */

@@ -143,7 +143,7 @@ export class BurrSettingTab extends PluginSettingTab {
 			.setName("Note des mots faibles")
 			.setDesc(
 				"Les mots de chaque famille se lisent dans une note du coffre (une section par famille) : vous l'éditez dans Obsidian, elle est versionnée et synchronisée avec le reste. " +
-					"Tant qu'elle n'existe pas, Burr utilise les mots de la langue.",
+					"Tant qu'elle n'existe pas, Burr utilise les mots de la langue. Chemin depuis la racine du coffre ; l'extension .md s'ajoute si vous l'omettez.",
 			)
 			.addText((text) =>
 				text

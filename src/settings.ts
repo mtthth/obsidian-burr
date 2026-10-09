@@ -61,6 +61,11 @@ export const DEFAULT_SETTINGS: BurrSettings = {
 	excludedFolders: "",
 };
 
+/** Le chemin d'une note : l'extension .md s'ajoute si elle manque (« mots-faibles » -> « mots-faibles.md »). */
+export function markdownPath(path: string): string {
+	return /\.md$/i.test(path) ? path : `${path}.md`;
+}
+
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
 /** Complète et borne des réglages lus sur le disque (fichier édité à la main, ancienne version…). */

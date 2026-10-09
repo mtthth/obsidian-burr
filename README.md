@@ -85,7 +85,7 @@ La liste des mots courants, qui sert à juger de la rareté, pèse l'essentiel d
 | Mots faibles | Active le soulignement des familles de mots faibles qui s'accumulent. |
 | Seuil des mots faibles | Occurrences d'une famille, dans un même paragraphe, à partir desquelles elle est soulignée (1 à 6, 3 par défaut). |
 | *(une ligne par famille)* | Active ou désactive chaque famille de mots faibles. |
-| Note des mots faibles | Chemin de la note qui liste les mots (`mots-faibles.md` par défaut) ; bouton pour l'ouvrir ou la créer. |
+| Note des mots faibles | Chemin de la note qui liste les mots (`mots-faibles.md` par défaut ; `.md` s'ajoute s'il manque) ; bouton pour l'ouvrir ou la créer. |
 | Ignorer les noms propres | Écarte les mots qui prennent une majuscule en milieu de phrase, quand ils la portent (*Pierre*, pas *la pierre*). |
 | Ignorer les dialogues | Écarte les lignes qui commencent par un tiret cadratin (— ou --) et les passages entre guillemets français. Attention : une réplique est écartée en entier, incidente comprise (« dit-il »). |
 | Mots à ignorer en plus | Vos propres exceptions, un mot par ligne ou séparés par des virgules. Un mot à apostrophe ou à trait d'union (*aujourd'hui*, *peut-être*) s'écrit tel quel. |

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { analyze } from "../src/analyze.ts";
 import { WEAK } from "../src/detectors/weak.ts";
 import { french } from "../src/lang/fr/index.ts";
-import { DEFAULT_SETTINGS } from "../src/settings.ts";
+import { DEFAULT_SETTINGS, markdownPath } from "../src/settings.ts";
 import type { BurrSettings } from "../src/settings.ts";
 import { defaultLexicon, parseLexicon } from "../src/weak/lexicon.ts";
 
@@ -163,4 +163,11 @@ test("l'intensité suit l'accumulation", () => {
 
 test("une note sans famille ne signale rien", () => {
 	assert.deepEqual(passages("très, assez, presque.", {}, ""), []);
+});
+
+test("le chemin de la note prend l'extension .md quand elle manque", () => {
+	assert.equal(markdownPath("mots-faibles"), "mots-faibles.md");
+	assert.equal(markdownPath("Notes/v1.2/mots"), "Notes/v1.2/mots.md");
+	assert.equal(markdownPath("Notes/mots-faibles.md"), "Notes/mots-faibles.md");
+	assert.equal(markdownPath("Notes/Mots-faibles.MD"), "Notes/Mots-faibles.MD");
 });
