@@ -21,7 +21,7 @@ export interface BurrSettings {
 	weakDisabled: string[];
 	/** Chemin de la note qui liste les mots faibles ; absente, les mots de la langue s'appliquent. */
 	weakNote: string;
-	/** Ne jamais signaler un mot qui prend une majuscule en milieu de phrase. */
+	/** Ne jamais signaler un mot écrit avec la majuscule qu'il prend en milieu de phrase (un nom propre). */
 	ignoreProperNames: boolean;
 	/** Laisser de côté les répliques de dialogue. */
 	ignoreDialogue: boolean;

@@ -16,7 +16,7 @@ Burr fait pour l'instant deux choses : la détection automatique des répétitio
 - **Formes d'un même mot.** Grâce à un stemmer [Snowball](https://snowballstem.org/) français, *regardait*, *regarda* et *regardant* se rapprochent. Une table des verbes irréguliers (aller, faire, pouvoir, venir, prendre… et leurs composés) rapproche aussi *fait*, *faisons* et *ferai*, ou *irai* et *allons*, que le stemmer ne peut pas relier. Ces rapprochements sont surlignés plus discrètement et sur une distance plus courte, car un stemmer se trompe parfois.
 - **Le bruit est écarté.**
   - Les mots-outils (*le, de, et, que, dans, il…*) et les formes d'*être* et d'*avoir* ne comptent pas.
-  - Les noms propres non plus : un mot qui prend une majuscule en milieu de phrase n'est jamais signalé, pour qu'un personnage qui revient ne soit pas une répétition.
+  - Les noms propres non plus : un mot qui prend une majuscule en milieu de phrase n'est jamais signalé quand il porte cette majuscule, pour qu'un personnage qui revient ne soit pas une répétition. Écrit en minuscules, il reste signalé : un titre (« La Maison du lac ») ou une majuscule de sens (« la Mort ») ne fait pas taire *maison* ou *mort* dans le reste du texte.
   - Le frontmatter, les blocs de code, le code en ligne, les commentaires (`%% %%`, `<!-- -->`), les formules `$$`, les adresses et les cibles de liens sont ignorés.
   - En option, les dialogues.
 - **En direct.** Les surlignages suivent le texte pendant la frappe et se recalculent après 250 ms d'inactivité, en mode source comme en aperçu en direct.
@@ -86,7 +86,7 @@ La liste des mots courants, qui sert à juger de la rareté, pèse l'essentiel d
 | Seuil des mots faibles | Occurrences d'une famille, dans un même paragraphe, à partir desquelles elle est soulignée (1 à 6, 3 par défaut). |
 | *(une ligne par famille)* | Active ou désactive chaque famille de mots faibles. |
 | Note des mots faibles | Chemin de la note qui liste les mots (`mots-faibles.md` par défaut) ; bouton pour l'ouvrir ou la créer. |
-| Ignorer les noms propres | Écarte les mots qui prennent une majuscule en milieu de phrase. |
+| Ignorer les noms propres | Écarte les mots qui prennent une majuscule en milieu de phrase, quand ils la portent (*Pierre*, pas *la pierre*). |
 | Ignorer les dialogues | Écarte les lignes qui commencent par un tiret cadratin (— ou --) et les passages entre guillemets français. Attention : une réplique est écartée en entier, incidente comprise (« dit-il »). |
 | Mots à ignorer en plus | Vos propres exceptions, un mot par ligne ou séparés par des virgules. |
 | Dossiers à analyser | Un dossier par ligne. Vide : toutes les notes ; sinon, seulement celles de ces dossiers. |

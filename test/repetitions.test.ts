@@ -51,6 +51,17 @@ test("une majuscule de début de phrase ne fait pas un nom propre", () => {
 	assert.deepEqual(words("Maison vide. Maison sombre."), ["Maison", "Maison"]);
 });
 
+test("une majuscule de titre ou de sens ne fait pas taire le mot écrit en minuscules", () => {
+	assert.deepEqual(words("## La Maison du lac\n\nLa maison était vide. Il regarda la maison longtemps."), ["maison", "maison"]);
+	assert.deepEqual(words("Il pensait à la Mort. La mort rôdait, la mort attendait."), ["mort", "mort"]);
+	assert.deepEqual(words("Les droits de l'Homme. Un homme passa, puis un autre homme."), ["homme", "homme"]);
+});
+
+test("un nom propre qui est aussi un nom commun n'est écarté que là où il porte sa majuscule", () => {
+	assert.deepEqual(words("Pierre ramassa une pierre. Alors Pierre sourit."), []);
+	assert.deepEqual(words("Il vit Pierre près de la pierre, puis une autre pierre."), ["pierre", "pierre"]);
+});
+
 test("les mots à ignorer de l'utilisateur sont respectés, sur plusieurs lignes ou séparés par des virgules", () => {
 	const text = "Un fauteuil, un fauteuil, une table, une table.";
 	assert.deepEqual(words(text), ["fauteuil", "fauteuil", "table", "table"]);

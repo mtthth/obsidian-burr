@@ -161,7 +161,7 @@ export class BurrSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Ignorer les noms propres")
-			.setDesc("Un mot qui prend une majuscule en milieu de phrase n'est jamais signalé : un personnage qui revient n'est pas une répétition.")
+			.setDesc("Un mot qui prend une majuscule en milieu de phrase est un nom propre : écrit avec sa majuscule, il n'est jamais signalé (un personnage qui revient n'est pas une répétition). Écrit en minuscules, il l'est : « la Mort » ne fait pas taire « la mort ».")
 			.addToggle((toggle) =>
 				toggle.setValue(settings.ignoreProperNames).onChange(async (value) => {
 					settings.ignoreProperNames = value;

@@ -42,6 +42,10 @@ function sentence(before: string, place: string, after: string): Explanation {
 /**
  * Mots qui s'écrivent avec une majuscule ailleurs qu'en début de phrase :
  * des noms propres. Un personnage qui revient sans cesse n'est pas une répétition.
+ * Seuls leurs emplois avec majuscule sont écartés : « la Mort » ou un titre
+ * (« La Maison du lac ») ne font pas taire « la mort » ou « la maison » dans le
+ * reste du texte. Un emploi en début de phrase (« Pierre sourit ») l'est aussi :
+ * sa majuscule est celle du nom, que l'on ne confond pas avec « la pierre ».
  * Les mots-outils et les mots très courts sont écartés : « Il » ou « Qu' » après
  * un tiret de dialogue mal reconnu ne font pas de « il » ou de « qu » des noms propres.
  */
@@ -85,7 +89,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 	const kind = new Uint8Array(count);
 	for (let i = 0; i < count; i++) {
 		const word = tokens[i].norm;
-		if (ignored.has(word) || names.has(word)) kind[i] = EXCLUDED;
+		if (ignored.has(word) || (tokens[i].capitalized && names.has(word))) kind[i] = EXCLUDED;
 		else if (word.length >= MIN_WORD_LENGTH && LETTER.test(word) && !language.stopwords.has(word)) kind[i] = FULL;
 		else kind[i] = FUNCTION;
 	}
