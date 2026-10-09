@@ -181,7 +181,7 @@ export class BurrSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Mots à ignorer en plus")
-			.setDesc("Ajoutés aux mots-outils (le, de, il, être, avoir…). Un mot par ligne, ou séparés par des virgules.")
+			.setDesc("Ajoutés aux mots-outils (le, de, il, être, avoir…). Un mot par ligne, ou séparés par des virgules. Un mot à apostrophe ou à trait d'union (aujourd'hui, peut-être) s'écrit tel quel.")
 			.addTextArea((area) => {
 				area.setValue(settings.extraIgnoredWords).onChange(async (value) => {
 					settings.extraIgnoredWords = value;

@@ -88,7 +88,7 @@ La liste des mots courants, qui sert à juger de la rareté, pèse l'essentiel d
 | Note des mots faibles | Chemin de la note qui liste les mots (`mots-faibles.md` par défaut) ; bouton pour l'ouvrir ou la créer. |
 | Ignorer les noms propres | Écarte les mots qui prennent une majuscule en milieu de phrase, quand ils la portent (*Pierre*, pas *la pierre*). |
 | Ignorer les dialogues | Écarte les lignes qui commencent par un tiret cadratin (— ou --) et les passages entre guillemets français. Attention : une réplique est écartée en entier, incidente comprise (« dit-il »). |
-| Mots à ignorer en plus | Vos propres exceptions, un mot par ligne ou séparés par des virgules. |
+| Mots à ignorer en plus | Vos propres exceptions, un mot par ligne ou séparés par des virgules. Un mot à apostrophe ou à trait d'union (*aujourd'hui*, *peut-être*) s'écrit tel quel. |
 | Dossiers à analyser | Un dossier par ligne. Vide : toutes les notes ; sinon, seulement celles de ces dossiers. |
 | Dossiers à ignorer | Un dossier par ligne. Ces notes ne sont jamais analysées, même dans un dossier à analyser. |
 
@@ -146,7 +146,7 @@ src/
   scope.ts              quelles notes sont analysées : dossiers à inclure ou ignorer, balise du YAML
   analyze.ts            texte -> mots -> détecteurs -> plages à surligner
   colors.ts             une couleur par famille de plages, stable pendant la frappe
-  text/                 normalisation, zones ignorées, découpage en mots
+  text/                 normalisation, zones ignorées, découpage en mots, mots à ignorer de l'auteur
   detectors/            un module par détecteur, même interface (types.ts) : repetitions.ts, weak.ts
   weak/lexicon.ts       la note de mots faibles : lecture, entrées (mot, expression, @verbe, *terminaison), recherche
   editor/highlight.ts   extension CodeMirror 6 (ViewPlugin + Decoration.mark)

@@ -1,5 +1,5 @@
-import { parseWordList } from "../settings.ts";
 import type { Token } from "../text/tokenize.ts";
+import { listedTokens, parseWordList } from "../text/wordList.ts";
 import type { DetectionInput, Detector, Explanation, Highlight } from "./types.ts";
 
 export const REPETITION = "repetition";
@@ -77,7 +77,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 	const count = tokens.length;
 	const reach = settings.window;
 
-	const ignored = parseWordList(settings.extraIgnoredWords);
+	const ignored = listedTokens(text, tokens, parseWordList(settings.extraIgnoredWords));
 	const names = settings.ignoreProperNames ? properNames(tokens, language.stopwords) : new Set<string>();
 
 	// Trois sortes de mots : pleins (signalables), mots-outils (jamais signalés
@@ -89,7 +89,7 @@ function detect({ text, tokens, language, settings }: DetectionInput): Highlight
 	const kind = new Uint8Array(count);
 	for (let i = 0; i < count; i++) {
 		const word = tokens[i].norm;
-		if (ignored.has(word) || (tokens[i].capitalized && names.has(word))) kind[i] = EXCLUDED;
+		if (ignored[i] || (tokens[i].capitalized && names.has(word))) kind[i] = EXCLUDED;
 		else if (word.length >= MIN_WORD_LENGTH && LETTER.test(word) && !language.stopwords.has(word)) kind[i] = FULL;
 		else kind[i] = FUNCTION;
 	}

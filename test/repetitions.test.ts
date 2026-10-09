@@ -69,6 +69,15 @@ test("les mots à ignorer de l'utilisateur sont respectés, sur plusieurs lignes
 	assert.deepEqual(words(text, { extraIgnoredWords: "fauteuil, table" }), []);
 });
 
+test("un mot à apostrophe ou à trait d'union s'ignore tel qu'il est écrit", () => {
+	const text = "Aujourd’hui il pleut. Aujourd'hui encore, peut-être demain, peut-être pas.";
+	assert.deepEqual(words(text), ["Aujourd’hui", "Aujourd'hui", "peut", "peut"]);
+	assert.deepEqual(words(text, { extraIgnoredWords: "aujourd'hui, peut-être" }), []);
+	assert.deepEqual(words(text, { extraIgnoredWords: "Aujourd’hui\npeut-être" }), []);
+	// « peut-être » n'attrape pas le verbe suivi d'un infinitif.
+	assert.deepEqual(words("Il peut être là. Elle peut venir.", { extraIgnoredWords: "peut-être" }), ["peut", "peut"]);
+});
+
 test("les formes d'un même mot sont rapprochées, plus discrètement", () => {
 	const text = "Il regardait la mer. Elle regarda le ciel.";
 	assert.deepEqual(highlighted(text), [

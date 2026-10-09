@@ -25,7 +25,7 @@ export interface Token {
  * et le trait d'union coupent : « l'homme » donne « l » et « homme »,
  * « dit-il » donne « dit » et « il ». Pas de \b, qui ne comprend pas les accents.
  */
-const WORD = /[\p{L}\p{N}\p{M}]+/gu;
+export const WORD = /[\p{L}\p{N}\p{M}]+/gu;
 
 /** Ponctuation qui ferme une phrase ou une proposition, et fin de ligne (commune aux langues latines et germaniques). */
 const HARD_BREAK = /[.!?…;:\n]/;

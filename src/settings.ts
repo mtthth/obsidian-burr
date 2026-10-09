@@ -88,12 +88,3 @@ export function sanitizeSettings(raw: Partial<BurrSettings> | null | undefined):
 		excludedFolders: String(merged.excludedFolders ?? ""),
 	};
 }
-
-/** « mot, autre mot » ou un mot par ligne -> ensemble de mots en minuscules NFC. */
-export function parseWordList(text: string): Set<string> {
-	const words = text
-		.split(/[\s,;]+/)
-		.map((word) => word.trim().toLowerCase().normalize("NFC"))
-		.filter(Boolean);
-	return new Set(words);
-}
