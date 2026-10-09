@@ -71,3 +71,18 @@ test("une plage sans famille connue reçoit quand même une couleur valide", () 
 	assert.deepEqual(assignColors([], new Map()), []);
 	assert.deepEqual(assignColors([at(0, "")], new Map()), [0]);
 });
+
+test("la mémoire oublie les familles disparues du texte, jamais celles qui y sont", () => {
+	const memory: ColorMemory = new Map();
+	assignColors([at(0, "a"), at(100, "b"), at(200, "c")], memory, PALETTE_SIZE, 3);
+	const before = new Map(memory);
+	// « a » est toujours là ; « b » et « c », vues le moins récemment, laissent la place à « d » et « e ».
+	const colors = assignColors([at(0, "a"), at(300, "d"), at(400, "e")], memory, PALETTE_SIZE, 3);
+	assert.equal(colors[0], before.get("a"));
+	assert.deepEqual([...memory.keys()].sort(), ["a", "d", "e"]);
+	// Plus de familles dans le texte que la limite : toutes gardent leur couleur.
+	const many = Array.from({ length: 5 }, (_, i) => at(i * 100, `f${i}`));
+	const first = assignColors(many, memory, PALETTE_SIZE, 3);
+	assert.deepEqual([...memory.keys()].sort(), ["f0", "f1", "f2", "f3", "f4"]);
+	assert.deepEqual(assignColors(many, memory, PALETTE_SIZE, 3), first);
+});

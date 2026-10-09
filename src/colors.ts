@@ -3,10 +3,13 @@ import type { Highlight } from "./detectors/types.ts";
 /** Nombre de couleurs de la palette (voir styles.css, classes `burr-color-N`). */
 export const PALETTE_SIZE = 12;
 
-/** Mémoire des couleurs déjà attribuées, d'une analyse à l'autre. */
+/** Mémoire des couleurs déjà attribuées, d'une analyse à l'autre : de la famille vue le moins récemment à la plus récente. */
 export type ColorMemory = Map<string, number>;
 
-/** Au-delà, on repart de zéro plutôt que de laisser la mémoire grossir sans fin. */
+/**
+ * Au-delà, on oublie les familles vues le moins récemment (celles qui ont disparu du texte),
+ * plutôt que de laisser la mémoire grossir sans fin ou de la vider d'un coup.
+ */
 const MEMORY_LIMIT = 20_000;
 
 interface Span {
@@ -55,9 +58,12 @@ class ColorLane {
  * mémoire, ajouter une répétition au début du texte ferait changer de couleur
  * toutes les suivantes, à chaque frappe.
  */
-export function assignColors(highlights: readonly Highlight[], memory: ColorMemory, size = PALETTE_SIZE): number[] {
-	if (memory.size > MEMORY_LIMIT) memory.clear();
-
+export function assignColors(
+	highlights: readonly Highlight[],
+	memory: ColorMemory,
+	size = PALETTE_SIZE,
+	limit = MEMORY_LIMIT,
+): number[] {
 	// Les plages de chaque famille ; les familles se suivent dans l'ordre du texte.
 	const families = new Map<string, Span[]>();
 	for (const { family, from, to, color } of highlights) {
@@ -72,6 +78,8 @@ export function assignColors(highlights: readonly Highlight[], memory: ColorMemo
 	const place = (family: string, spans: Span[], color: number) => {
 		lanes[color].add(spans);
 		colorOf.set(family, color);
+		// Retirée puis remise, la famille passe en dernier : la plus récemment vue.
+		memory.delete(family);
 		memory.set(family, color);
 	};
 
@@ -96,6 +104,13 @@ export function assignColors(highlights: readonly Highlight[], memory: ColorMemo
 			}
 		}
 		place(family, spans, color);
+	}
+
+	// Les familles de cette analyse sont toutes en fin de mémoire : on oublie celles d'avant, jamais elles.
+	let excess = memory.size - Math.max(limit, families.size);
+	for (const family of memory.keys()) {
+		if (excess-- <= 0) break;
+		memory.delete(family);
 	}
 
 	return highlights.map((highlight) => highlight.color ?? (colorOf.get(highlight.family) as number));
