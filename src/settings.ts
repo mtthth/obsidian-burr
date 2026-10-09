@@ -68,11 +68,21 @@ export function markdownPath(path: string): string {
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
+/** Un interrupteur lu sur le disque : un booléen, ou son écriture en texte ; sinon la valeur par défaut. */
+const toggle = (value: unknown, fallback: boolean): boolean =>
+	typeof value === "boolean" ? value : value === "true" ? true : value === "false" ? false : fallback;
+
 /** Complète et borne des réglages lus sur le disque (fichier édité à la main, ancienne version…). */
 export function sanitizeSettings(raw: Partial<BurrSettings> | null | undefined): BurrSettings {
 	const merged = { ...DEFAULT_SETTINGS, ...raw };
 	return {
 		...merged,
+		enabled: toggle(merged.enabled, DEFAULT_SETTINGS.enabled),
+		useStemming: toggle(merged.useStemming, DEFAULT_SETTINGS.useStemming),
+		echoes: toggle(merged.echoes, DEFAULT_SETTINGS.echoes),
+		weakWords: toggle(merged.weakWords, DEFAULT_SETTINGS.weakWords),
+		ignoreProperNames: toggle(merged.ignoreProperNames, DEFAULT_SETTINGS.ignoreProperNames),
+		ignoreDialogue: toggle(merged.ignoreDialogue, DEFAULT_SETTINGS.ignoreDialogue),
 		window: clamp(Math.round(Number(merged.window)) || DEFAULT_SETTINGS.window, WINDOW_RANGE.min, WINDOW_RANGE.max),
 		maxNgram: clamp(Math.round(Number(merged.maxNgram)) || DEFAULT_SETTINGS.maxNgram, NGRAM_RANGE.min, NGRAM_RANGE.max),
 		echoRarity: clamp(
