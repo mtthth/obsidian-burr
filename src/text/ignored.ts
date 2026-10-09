@@ -2,22 +2,28 @@ import type { Language } from "../lang/types.ts";
 
 export type Span = [from: number, to: number];
 
-/** Motifs en ligne : code, formules, commentaires, adresses et cibles de liens. */
+/** Motifs en ligne, cherchés hors du code et des commentaires : formules, liens, adresses, balises. */
 const INLINE_PATTERNS: readonly RegExp[] = [
-	/(`+)[^\n]*?\1/g, // code en ligne
 	/\$\$[\s\S]*?\$\$/g, // formule en bloc
-	/<!--[\s\S]*?-->/g, // commentaire HTML
-	/%%[\s\S]*?%%/g, // commentaire Obsidian
+	/\$(?=\S)(?:\\\$|[^$\n])*?(?<=[^\s\\])\$(?!\d)/g, // formule en ligne : « $x^2$ », pas « 5 $ ou 10 $ »
 	/!\[\[[^\]\n]*\]\]/g, // fichier intégré
 	/\[\[[^\]|\n]*\|/g, // cible d'un lien [[cible|texte affiché]]
 	/\]\([^)\n]*\)/g, // cible d'un lien [texte](cible)
-	/https?:\/\/[^\s)>\]]+/g, // adresse web
+	/(?:https?:\/\/|\bwww\.)[^\s)>\]]+/g, // adresse web
+	/[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu, // adresse électronique
+	/(?<!\S)#[\p{L}\p{N}_/-]*[\p{L}_/-][\p{L}\p{N}_/-]*/gu, // balise (« #personnage », pas « #1 » ni un titre « # Titre »)
+	/<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?\/?>/g, // balise HTML (« <span class="note"> »), pas ce qu'elle entoure
+	/(?<=^[ \t]*(?:>[ \t]*)+)\[![^\]\n]*\][+-]?/gm, // type d'un encadré (« > [!note] »)
 ];
 
-/** Frontmatter YAML (seulement s'il est refermé) et blocs de code clôturés. */
+/** Le début d'une ligne de citation ou d'encadré (« > », « > > ») : un bloc de code peut s'y ouvrir. */
+const QUOTE = "(?:[ \\t]{0,3}>)*";
+const FENCE_OPENING = new RegExp(`^${QUOTE}[ \\t]{0,3}(\`{3,}|~{3,})`);
+
+/** Frontmatter YAML (seulement s'il est refermé) et blocs de code clôturés, cités compris. */
 function blockSpans(text: string): Span[] {
 	const spans: Span[] = [];
-	let fence: { char: string; length: number; start: number } | null = null;
+	let fence: { closing: RegExp; start: number } | null = null;
 
 	const frontmatter = /^---[ \t]*\n[\s\S]*?\n(?:---|\.\.\.)[ \t]*(?=\n|$)/.exec(text);
 	let pos = 0;
@@ -32,14 +38,16 @@ function blockSpans(text: string): Span[] {
 		const line = text.slice(pos, eol);
 
 		if (fence) {
-			const closing = new RegExp(`^[ \\t]{0,3}${fence.char}{${fence.length},}[ \\t]*$`);
-			if (closing.test(line)) {
+			if (fence.closing.test(line)) {
 				spans.push([fence.start, eol]);
 				fence = null;
 			}
 		} else {
-			const opening = /^[ \t]{0,3}(`{3,}|~{3,})/.exec(line);
-			if (opening) fence = { char: opening[1][0], length: opening[1].length, start: pos };
+			const opening = FENCE_OPENING.exec(line);
+			if (opening) {
+				const closing = new RegExp(`^${QUOTE}[ \\t]{0,3}${opening[1][0]}{${opening[1].length},}[ \\t]*$`);
+				fence = { closing, start: pos };
+			}
 		}
 
 		if (eol === text.length) break;
@@ -48,6 +56,45 @@ function blockSpans(text: string): Span[] {
 
 	// Un bloc de code jamais refermé court jusqu'à la fin, comme dans l'éditeur.
 	if (fence) spans.push([fence.start, text.length]);
+	return spans;
+}
+
+/**
+ * Code en ligne et commentaires, lus de gauche à droite : le premier ouvert l'emporte.
+ * Un « %% » écrit dans du code n'ouvre pas de commentaire ; un commentaire jamais
+ * refermé court jusqu'à la fin, comme dans l'éditeur.
+ */
+function codeAndCommentSpans(text: string): Span[] {
+	const spans: Span[] = [];
+	const opener = /`+|%%|<!--/g;
+	for (let match = opener.exec(text); match; match = opener.exec(text)) {
+		const start = match.index;
+		let end: number;
+		if (match[0][0] === "`") {
+			// Du code s'il se referme par autant d'accents graves sur la même ligne ; sinon, un accent seul.
+			const code = new RegExp(`${match[0]}[^\\n]*?${match[0]}`, "y");
+			code.lastIndex = start;
+			if (!code.test(text)) continue;
+			end = code.lastIndex;
+		} else {
+			const close = match[0] === "%%" ? "%%" : "-->";
+			const found = text.indexOf(close, start + match[0].length);
+			end = found < 0 ? text.length : found + close.length;
+		}
+		spans.push([start, end]);
+		opener.lastIndex = end;
+	}
+	return spans;
+}
+
+/** Les plages de `text` où l'un des motifs (drapeau `g`) est trouvé. */
+function matchSpans(text: string, patterns: readonly RegExp[]): Span[] {
+	const spans: Span[] = [];
+	for (const pattern of patterns) {
+		for (const match of text.matchAll(pattern)) {
+			spans.push([match.index as number, (match.index as number) + match[0].length]);
+		}
+	}
 	return spans;
 }
 
@@ -66,16 +113,24 @@ export interface IgnoreOptions {
 	ignoreDialogue: boolean;
 }
 
+/**
+ * Ce qui, dans du Markdown, n'est pas du texte que l'on lit : blocs (frontmatter, code),
+ * code en ligne et commentaires, puis le reste (formules, liens, adresses, balises),
+ * chaque passe ne cherchant que hors de ce que les précédentes ont trouvé. Triées, fusionnées.
+ */
+export function markupSpans(text: string): Span[] {
+	const blocks = mergeSpans(blockSpans(text));
+	const outsideBlocks = maskSpans(text, blocks);
+	const code = codeAndCommentSpans(outsideBlocks);
+	const outsideCode = maskSpans(outsideBlocks, code);
+	return mergeSpans([...blocks, ...code, ...matchSpans(outsideCode, INLINE_PATTERNS)]);
+}
+
 /** Plages du texte qui ne sont pas de la prose à relire, triées et fusionnées. */
 export function ignoredSpans(text: string, language: Language, options: IgnoreOptions): Span[] {
-	const spans = blockSpans(text);
-	const patterns = options.ignoreDialogue ? [...INLINE_PATTERNS, ...language.dialogue] : INLINE_PATTERNS;
-	for (const pattern of patterns) {
-		for (const match of text.matchAll(pattern)) {
-			spans.push([match.index as number, (match.index as number) + match[0].length]);
-		}
-	}
-	return mergeSpans(spans);
+	const spans = markupSpans(text);
+	if (!options.ignoreDialogue) return spans;
+	return mergeSpans([...spans, ...matchSpans(maskSpans(text, spans), language.dialogue)]);
 }
 
 /** Le caractère qui recouvre les zones ignorées : ni lettre, ni ponctuation, ni espace. */

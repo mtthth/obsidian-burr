@@ -17,7 +17,7 @@ Burr fait pour l'instant deux choses : la détection automatique des répétitio
 - **Le bruit est écarté.**
   - Les mots-outils (*le, de, et, que, dans, il…*) et les formes d'*être* et d'*avoir* ne comptent pas.
   - Les noms propres non plus : un mot qui prend une majuscule en milieu de phrase n'est jamais signalé quand il porte cette majuscule, pour qu'un personnage qui revient ne soit pas une répétition. Écrit en minuscules, il reste signalé : un titre (« La Maison du lac ») ou une majuscule de sens (« la Mort ») ne fait pas taire *maison* ou *mort* dans le reste du texte.
-  - Le frontmatter, les blocs de code, le code en ligne, les commentaires (`%% %%`, `<!-- -->`), les formules `$$`, les adresses et les cibles de liens sont ignorés.
+  - Le frontmatter, les blocs de code (dans une citation aussi), le code en ligne, les commentaires (`%% %%`, `<!-- -->` ; jamais refermé, un commentaire court jusqu'à la fin, comme dans l'éditeur), les formules (`$…$`, `$$…$$`), les balises (`#personnage`), les balises HTML (pas le texte qu'elles entourent), le type d'un encadré (`> [!note]`), les adresses web et électroniques et les cibles de liens sont ignorés.
   - En option, les dialogues.
 - **En direct.** Les surlignages suivent le texte pendant la frappe et se recalculent après 250 ms d'inactivité, en mode source comme en aperçu en direct.
 

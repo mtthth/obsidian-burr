@@ -44,6 +44,24 @@ test("frontmatter, code et liens ne sont pas de la prose", () => {
 	assert.deepEqual(norms, ["un", "mot", "puis", "le", "lien", "et", "fin", "après"]);
 });
 
+test("balises, HTML, encadrés, formules, adresses et commentaires ouverts ne sont pas de la prose", () => {
+	const norms = (text: string) => tokens(text).map((t) => t.norm);
+	assert.deepEqual(norms("Texte #personnage/principal ici, pas #1 ni # titre."), ["texte", "ici", "pas", "1", "ni", "titre"]);
+	assert.deepEqual(norms('<span class="note">un</span> mot<br/>'), ["un", "mot"]);
+	assert.deepEqual(norms("> [!note]+ Remarque\n> texte"), ["remarque", "texte"]);
+	assert.deepEqual(norms("Soit $x^2 + y$ et 5 $ ou 10 $."), ["soit", "et", "5", "ou", "10"]);
+	assert.deepEqual(norms("Voir www.exemple.fr ou ecrire@exemple.fr vite."), ["voir", "ou", "vite"]);
+	assert.deepEqual(norms("> ```\n> caché\n> ```\nVisible"), ["visible"]);
+});
+
+test("un commentaire jamais refermé court jusqu'à la fin, mais pas un « %% » écrit dans du code", () => {
+	const norms = (text: string) => tokens(text).map((t) => t.norm);
+	assert.deepEqual(norms("Début %% commentaire jamais refermé\nsuite"), ["début"]);
+	assert.deepEqual(norms("Début <!-- commentaire jamais refermé\nsuite"), ["début"]);
+	assert.deepEqual(norms("Le code `%%` ne commente rien, suite."), ["le", "code", "ne", "commente", "rien", "suite"]);
+	assert.deepEqual(norms("Un %% avec `code` dedans %% fin."), ["un", "fin"]);
+});
+
 test("un frontmatter jamais refermé n'efface pas le document", () => {
 	const norms = tokens("---\nUn texte\n```\ncode\n```\nSuite").map((t) => t.norm);
 	assert.deepEqual(norms, ["un", "texte", "suite"]);
