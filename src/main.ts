@@ -23,6 +23,9 @@ export default class BurrPlugin extends Plugin {
 	/** Les mots faibles lus dans la note de l'auteur ; `undefined` tant qu'elle n'existe pas (ceux de la langue s'appliquent). */
 	private lexicon: Lexicon | undefined;
 
+	/** Numéro de la dernière lecture de cette note : une lecture dépassée ne s'applique pas. */
+	private lexiconReads = 0;
+
 	async onload() {
 		this.settings = sanitizeSettings(await this.loadData());
 
@@ -141,13 +144,17 @@ export default class BurrPlugin extends Plugin {
 
 	/** Relit la note des mots faibles (absente : on revient aux mots de la langue) et relance l'analyse. */
 	async loadLexicon() {
+		const read = ++this.lexiconReads;
 		const file = this.weakNoteFile();
+		let lexicon: Lexicon | undefined;
 		try {
-			this.lexicon = file ? parseLexicon(await this.app.vault.cachedRead(file)) : undefined;
+			lexicon = file ? parseLexicon(await this.app.vault.cachedRead(file)) : undefined;
 		} catch (error) {
 			console.error("Burr : note des mots faibles illisible", error);
-			this.lexicon = undefined;
 		}
+		// Deux modifications rapprochées : la dernière lecture lancée l'emporte, même si elle répond la première.
+		if (read !== this.lexiconReads) return;
+		this.lexicon = lexicon;
 		this.refreshEditors();
 	}
 
