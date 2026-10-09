@@ -48,6 +48,11 @@ sauf: moment, logement
 	);
 });
 
+test("dans la note, un bloc de code, du code en ligne ou un commentaire ne donnent pas de mots", () => {
+	const note = "## Intensifs\n\ntrès, `exemple`\n\n```\nfaux, code\n```\n\n%% brouillon, essai %%\nassez\n";
+	assert.deepEqual(parseLexicon(note).families[0].entries, ["très", "assez"]);
+});
+
 test("le dictionnaire par défaut a ses cinq familles", () => {
 	assert.deepEqual(
 		defaultLexicon(french).families.map((f) => f.id),

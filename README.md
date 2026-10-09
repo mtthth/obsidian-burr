@@ -45,7 +45,7 @@ Un mot faible n'est pas une faute : c'est un **signal de densité**. Un « très
   - *Mots vagues* : chose, quelque chose, truc, sorte de, genre, un certain… ; seuil de 2.
   - *Béquilles narratives* : soudain, tout à coup, puis, alors, comme si, peut-être…
 - **La liste est une note de votre coffre.** Burr lit une note (`mots-faibles.md` par défaut, réglable) avec une section `##` par famille : vous l'éditez dans Obsidian, elle est versionnée avec le reste et synchronisée sur mobile, et le surlignage suit chaque modification. La commande « Ouvrir la note des mots faibles » la crée avec les mots par défaut, à adapter ; tant qu'elle n'existe pas, ces mots s'appliquent. Supprimer une section retire la famille.
-  - Les mots ou expressions se séparent par des virgules ou des retours à la ligne.
+  - Les mots ou expressions se séparent par des virgules ou des retours à la ligne. Les lignes qui commencent par `>`, les blocs de code, le code en ligne et les commentaires (`%% %%`) ne donnent pas de mots : un exemple s'y met à l'abri.
   - `## Verbes ternes (seuil 6)` : un seuil propre à la famille, qui l'emporte sur le réglage général.
   - `@faire` désigne toutes les formes d'un verbe (*fais, faisait, fera, fit, fait*…) ; `@commencer à` ou `se @mettre à` une expression dont un mot se conjugue. Les formes sont listées, pas déduites d'un stemmer : *commencement* n'est pas *commencer*. Les verbes irréguliers viennent de la table de Burr, *être* et *avoir* d'une liste à part, les verbes en -er sont conjugués (cédille de *commençons*, e de *mangeons*) ; un autre verbe se liste forme à forme.
   - `*ment` désigne les mots qui se terminent ainsi, sauf ceux de la ligne `sauf: moment, logement…`.

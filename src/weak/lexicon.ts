@@ -1,5 +1,6 @@
 import type { Language } from "../lang/types.ts";
 import type { Token } from "../text/tokenize.ts";
+import { MASK, markupSpans, maskSpans } from "../text/ignored.ts";
 import { normalizeText } from "../text/normalize.ts";
 
 /** Une famille de mots faibles : une section de la note, avec sa couleur et son seuil. */
@@ -22,7 +23,6 @@ export interface Lexicon {
 
 /** Les mots d'une entrée : lettres, chiffres, et les marques `@` (verbe) et `*` (terminaison). */
 const ENTRY_WORD = /[@*]?[\p{L}\p{N}\p{M}]+/gu;
-const FRONTMATTER = /^---[ \t]*\n[\s\S]*?\n(?:---|\.\.\.)[ \t]*(?:\n|$)/;
 const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
 const THRESHOLD = /\(\s*seuil\s*:?\s*(\d+)\s*\)/i;
 const EXCEPTIONS = /^sauf\s*:/i;
@@ -42,10 +42,12 @@ function slug(label: string): string {
 /**
  * Lit la note de mots faibles. Une section `##` par famille ; un titre `#` n'ouvre
  * pas de famille (c'est le titre de la note, et ce qui le suit est de l'explication).
- * Les lignes `>` sont des commentaires.
+ * Les lignes `>` sont des commentaires. Ce qui n'est pas du texte (frontmatter, blocs de code,
+ * code en ligne, commentaires `%% %%`…) est retiré : un exemple s'y met à l'abri.
  */
 export function parseLexicon(markdown: string): Lexicon {
-	const text = normalizeText(markdown.replace(/\r\n?/g, "\n").replace(FRONTMATTER, ""));
+	const source = normalizeText(markdown.replace(/\r\n?/g, "\n"));
+	const text = maskSpans(source, markupSpans(source)).split(MASK).join("");
 	const families: WeakFamily[] = [];
 	const used = new Set<string>();
 	let current: WeakFamily | null = null;
